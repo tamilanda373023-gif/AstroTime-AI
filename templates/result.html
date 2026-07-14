@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AstroTime AI - Results Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Load Chart.js for real visualization capabilities -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="/">🌌 AstroTime AI</a>
+        </div>
+    </nav>
+
+    <main class="container my-5">
+        <!-- Header Controls -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h2 fw-bold text-white mb-1">Analysis Dashboard</h1>
+                <p class="text-muted small mb-0">Geomatics Engine calculations based on input coordinates</p>
+            </div>
+            <a href="/analysis" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">← Run New Analysis</a>
+        </div>
+
+        <!-- Meta Input Information Bar -->
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            <div class="data-badge">📍 Latitude: <span class="text-white fw-bold">{{ data.latitude }}</span></div>
+            <div class="data-badge">📍 Longitude: <span class="text-white fw-bold">{{ data.longitude }}</span></div>
+            <div class="data-badge">📅 Date: <span class="text-white fw-bold">{{ data.date }}</span></div>
+            <div class="data-badge">⏰ Time: <span class="text-white fw-bold">{{ data.time }} (UTC+{{ data.timezone }})</span></div>
+        </div>
+
+        <!-- Main Cards Data Grid -->
+        <div class="row g-4 mb-4">
+            <!-- Astronomical Ephemeris Card -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header-custom text-info d-flex align-items-center">
+                        <span>🛰️ Time Systems Transformation</span>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center py-3 border-bottom border-secondary">
+                            <span class="text-muted">Mean Solar Time</span>
+                            <span class="h4 font-monospace text-info mb-0">{{ data.mean_solar }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-3 border-bottom border-secondary">
+                            <span class="text-muted">Apparent Solar Time</span>
+                            <span class="h4 font-monospace text-warning mb-0">{{ data.apparent_solar }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-3">
+                            <span class="text-muted">Local Sidereal Time (LST)</span>
+                            <span class="h4 font-monospace text-purple mb-0">{{ data.sidereal }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Solar Event Card -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header-custom text-success">
+                        <span>☀️ Solar Ephemeris Events</span>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center py-3 border-bottom border-secondary">
+                            <span class="text-muted">Sunrise Time</span>
+                            <span class="h5 font-monospace text-success mb-0">{{ data.sunrise }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-3 border-bottom border-secondary">
+                            <span class="text-muted">Solar Noon (Transit)</span>
+                            <span class="h5 font-monospace text-danger mb-0">{{ data.solar_noon }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-3">
+                            <span class="text-muted">Sunset Time</span>
+                            <span class="h5 font-monospace text-success mb-0">{{ data.sunset }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW: Interactive Visualization Chart Container -->
+        <div class="row g-4 mb-4">
+            <div class="col-12">
+                <div class="card p-4">
+                    <h3 class="h5 mb-3 text-white">📈 Time System Variation Comparison</h3>
+                    <div style="height: 250px; display: flex; align-items: center; justify-content: center; background: #1f2937; border-radius: 8px;" class="text-muted">
+                        <!-- Chart element shell ready for Sprint 3 chart rendering scripts -->
+                        <canvas id="timeComparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Assistant Explanations Card Container -->
+        <div class="card bg-dark border-primary mb-5" style="background: linear-gradient(to right, #111827, #1e1b4b);">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <span class="fs-4 me-2">🤖</span>
+                    <h3 class="h5 text-primary mb-0 fw-bold">AI Observational Interpretation Insight</h3>
+                </div>
+                <p class="mb-0 text-light-indigo lh-base">
+                    The calculated <strong>Apparent Solar Time</strong> varies directly from your local clock based on the seasonal Equation of Time effect. At this current spatial coordinate grid point, your <strong>Local Sidereal Time</strong> records the specific right ascension vector intersection currently transiting across your local observation meridian. Examiners from your surveying engineering department will look specifically for this exact relationship mapping!
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="text-center py-4 mt-auto">
+        <p class="small mb-0">&copy; 2026 AstroTime AI | Final Year Project Presentation Prototype</p>
+    </footer>
+
+    <!-- Simple Script to Initialize interactive Mock Chart elements visually -->
+    <script>
+        const ctx = document.getElementById('timeComparisonChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Mean Solar', 'Apparent Solar', 'Sidereal Time (Hours)'],
+                datasets: [{
+                    label: 'Relative Clock Scales',
+                    data: [12.25, 12.18, 14.53],
+                    backgroundColor: ['#3b82f6', '#eab308', '#a855f7'],
+                    borderWidth: 0,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { grid: { color: '#374151' }, ticks: { color: '#9ca3af' } },
+                    x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    </script>
+</body>
+</html>

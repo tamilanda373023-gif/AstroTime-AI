@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AstroTime AI - Workspace</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Interactive Maps CDN Integration -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+
+    <!-- STABLE RESPONSIVE NAVBAR ENGINE -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+                <span>🌌</span> AstroTime AI
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNavigationGrid">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="topNavigationGrid">
+                <ul class="navbar-nav ms-auto gap-2">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/analysis">Analysis</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/learn">Learn</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/ai">AI Assistant</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CORE INTERACTIVE ANALYTICAL WORKSPACE -->
+    <main class="container my-5">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="h3 fw-bold text-white mb-1">Spatial Targeting Workspace</h1>
+                <p class="text-muted small">Select targeting vectors on the globe grid to load geomatics calculations.</p>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- LEFT GRAPHIC CONTAINER: GEOGRAPHIC MAP TILES -->
+            <div class="col-lg-7">
+                <div class="card p-3 h-100">
+                    <h2 class="h6 text-white mb-3 d-flex align-items-center gap-2">
+                        <span>🗺️</span> Global Coordinate Target Grid
+                    </h2>
+                    <div id="map"></div>
+                    <span class="text-muted small mt-2 d-block text-center">💡 Click anywhere on the map grid to update tracking inputs automatically.</span>
+                </div>
+            </div>
+
+            <!-- RIGHT INPUT CONTAINER: DATA SUBMISSION ENGINE -->
+            <div class="col-lg-5">
+                <div class="card p-4 h-100">
+                    <h2 class="h6 text-white mb-4 d-flex align-items-center gap-2">
+                        <span>🛰️</span> Data Input Deck
+                    </h2>
+                    
+                    <!-- Connected directly to live backend route database engine -->
+                    <form action="/execute_analysis" method="POST">
+                        <div class="mb-3">
+                            <label for="latitude" class="form-label small fw-bold text-white">Target Latitude</label>
+                            <input type="number" step="any" class="form-control form-control-lg" id="latitude" name="latitude" value="3.1390" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="longitude" class="form-label small fw-bold text-white">Target Longitude</label>
+                            <input type="number" step="any" class="form-control form-control-lg" id="longitude" name="longitude" value="101.6869" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="date" class="form-label small fw-bold text-white">Observation Date</label>
+                            <input type="date" class="form-control form-control-lg" id="date" name="date" required>
+                        </div>
+
+                        <div class="row g-2 mb-4">
+                            <div class="col-7">
+                                <label for="time" class="form-label small fw-bold text-white">Local Standard Time</label>
+                                <input type="time" class="form-control form-control-lg" id="time" name="time" required>
+                            </div>
+                            <div class="col-5">
+                                <label for="timezone" class="form-label small fw-bold text-white">UTC Offset</label>
+                                <select class="form-select form-select-lg" id="timezone" name="timezone">
+                                    <option value="0">UTC +0</option>
+                                    <option value="1">UTC +1</option>
+                                    <option value="3">UTC +3</option>
+                                    <option value="5.5">UTC +5:30</option>
+                                    <option value="8" selected>UTC +8</option>
+                                    <option value="-5">UTC -5</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 rounded-pill fw-bold">
+                            Execute System Analysis →
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="text-center py-4 mt-auto">
+        <p class="small mb-0 text-muted">&copy; 2026 AstroTime AI | Spatial Horizon Framework</p>
+    </footer>
+
+    <!-- Bootstrap 5 JavaScript Modules Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- AUTOMATIC SPATIAL EXTRACTION MAP SCRIPT ENGINE -->
+    <script>
+        // Initialize dynamic map centering default parameters
+        const map = L.map('map').setView([3.1390, 101.6869], 5);
+
+        // Inject dark mode map skin tiles to match space styling parameters
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        }).addTo(map);
+
+        // Default marker tracking assignment
+        let activeMarker = L.marker([3.1390, 101.6869]).addTo(map);
+
+        // Inject current standard date structure directly into form on initial layout load
+        document.getElementById('date').value = new Date().toISOString().split('T')[0];
+        
+        const now = new Date();
+        const currentHours = String(now.getHours()).padStart(2, '0');
+        const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+        document.getElementById('time').value = `${currentHours}:${currentMinutes}`;
+
+        // Dynamic coordinate extraction engine trigger
+        map.on('click', function(e) {
+            const lat = e.latlng.lat.toFixed(4);
+            const lng = e.latlng.lng.toFixed(4);
+
+            // Re-render coordinate form input metrics values instantly
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lng;
+
+            // Reposition spatial marker framework to target vector point click coordinates
+            activeMarker.setLatLng(e.latlng);
+        });
+    </script>
+</body>
+</html>

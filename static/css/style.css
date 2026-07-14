@@ -1,0 +1,102 @@
+body {
+    background-color: #020208;
+    color: #f8f9fa !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow-x: hidden;
+    position: relative;
+    min-height: 100vh;
+}
+
+/* DEEP COSMIC NEBULA GLOW */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: 
+        radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.35) 0%, transparent 50%);
+    z-index: -3;
+}
+
+/* HIGH-INTENSITY GLOWING STARFIELD (Happening constantly) */
+@keyframes highIntensityTwinkle {
+    0%, 100% { opacity: 0.4; transform: scale(0.9); }
+    25% { opacity: 1; transform: scale(1.2); filter: drop-shadow(0 0 4px #fff); }
+    50% { opacity: 0.6; transform: scale(0.95); }
+    75% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 6px #3b82f6); }
+}
+
+body::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(#ffffff 2px, transparent 0),
+        radial-gradient(#ffffff 1.5px, transparent 0),
+        radial-gradient(#60a5fa 2px, transparent 0);
+    background-size: 60px 60px, 80px 80px, 110px 110px;
+    background-position: 0 0, 30px 30px, 55px 55px;
+    z-index: -2;
+    animation: highIntensityTwinkle 3s infinite ease-in-out;
+}
+
+/* GLOBE CONTAINER GRID */
+#canvas3d-container {
+    width: 100%;
+    height: 350px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    border-radius: 16px;
+    background: rgba(5, 7, 16, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+}
+
+/* RESPONSIVE LAYOUT & CARDS */
+.navbar {
+    background-color: rgba(10, 11, 22, 0.9) !important;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    background: linear-gradient(45deg, #3b82f6, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.navbar-dark .navbar-nav .nav-link {
+    color: #f1f5f9 !important;
+    font-weight: 600;
+}
+
+.card {
+    background-color: rgba(13, 17, 30, 0.8) !important;
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 16px;
+}
+
+.card h3, .card .h5, .card h1, .hero-section h1 {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+.card p, .card .text-muted, .hero-section p.lead {
+    color: #cbd5e1 !important;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    border: none;
+    font-weight: 600;
+}
