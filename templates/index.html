@@ -1,56 +1,100 @@
-{% extends 'base.html' %}
-{% block content %}
-<!-- Hero Banner -->
-<section class="relative bg-gradient-to-b from-slate-950 to-slate-900 py-24 px-4 text-center border-b border-slate-800">
-    <div class="max-w-4xl mx-auto">
-        <span class="text-blue-500 font-semibold tracking-widest uppercase text-xs">Geomatics Engineering Project</span>
-        <h1 class="text-3xl md:text-5xl font-extrabold text-white mt-4 mb-6 leading-tight">
-            Development of a Web-Based AI System for Astronomical Time Analysis Using Geomatics Data
-        </h1>
-        <p class="text-slate-400 text-md md:text-lg mb-8 max-w-2xl mx-auto">
-            Bridge the gap between temporal astronomical measurements and geographic coordinates through interactive web visualisations and real-time computation.
-        </p>
-        <a href="/analysis" class="inline-block bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-lg shadow-lg shadow-blue-500/20 transition-all transform hover:-translate-y-0.5">
-            Start Analysis
-        </a>
-    </div>
-</section>
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AstroTime AI - Geodetic & Astronomical Co-Pilot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
 
-<!-- Features Grid -->
-<section class="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
-    <h2 class="text-2xl font-bold text-center text-white mb-12">Key System Features</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-        
-        <div class="bg-slate-950/50 border border-slate-800 p-6 rounded-xl text-center hover:border-blue-500/50 transition-all">
-            <div class="text-4xl mb-4">🌍</div>
-            <h3 class="font-bold text-white mb-2">Interactive Map</h3>
-            <p class="text-xs text-slate-400">Click to automatically extract real-world coordinates.</p>
+    <!-- Header & Navigation Bar -->
+    <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <!-- Brand Logo -->
+            <a href="/" class="flex items-center space-x-3">
+                <span class="text-2xl">🌌</span>
+                <span class="font-bold text-xl tracking-wide text-white">AstroTime <span class="text-blue-500">AI</span></span>
+            </a>
+
+            <!-- Dynamic Navigation Bar with User System -->
+            <nav class="flex items-center space-x-6 text-sm font-medium">
+                <a href="/" class="text-blue-400 hover:text-blue-300 transition-colors">Home</a>
+                <a href="/analysis" class="text-slate-300 hover:text-white transition-colors">Analysis</a>
+                <a href="/learn" class="text-slate-300 hover:text-white transition-colors">Learn</a>
+                <a href="/ai-assistant" class="text-slate-300 hover:text-white transition-colors">AI Assistant</a>
+                <a href="/about" class="text-slate-300 hover:text-white transition-colors">About</a>
+                
+                {% if current_user.is_authenticated %}
+                    <span class="text-slate-400 border-l border-slate-700 pl-4">Hi, <strong class="text-white">{{ current_user.username }}</strong></span>
+                    <a href="/logout" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg transition-colors border border-slate-700">Logout</a>
+                {% else %}
+                    <a href="/login" class="text-slate-300 hover:text-white transition-colors border-l border-slate-700 pl-4">Login</a>
+                    <a href="/register" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors shadow-md shadow-blue-500/20">Register</a>
+                {% endif %}
+            </nav>
         </div>
+    </header>
 
-        <div class="bg-slate-950/50 border border-slate-800 p-6 rounded-xl text-center hover:border-blue-500/50 transition-all">
-            <div class="text-4xl mb-4">🛰</div>
-            <h3 class="font-bold text-white mb-2">Astronomical Analysis</h3>
-            <p class="text-xs text-slate-400">Compute Solar, Sidereal, and Universal Time frameworks.</p>
-        </div>
+    <main class="flex-grow">
+        <!-- Hero Section -->
+        <section class="max-w-7xl mx-auto px-4 pt-16 pb-12 text-center sm:px-6 lg:px-8">
+            <div class="max-w-3xl mx-auto">
+                <h1 class="text-4xl sm:text-5xl font-extrabold text-white tracking-tight mb-6">
+                    Precision Field Astronomy & Geodetic Computing
+                </h1>
+                <p class="text-slate-400 text-md md:text-lg mb-8 max-w-2xl mx-auto">
+                    Bridge the gap between temporal astronomical measurements and geographic coordinates through interactive web visualisations and real-time computation.
+                </p>
+                <a href="/analysis" class="inline-block bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-lg shadow-lg shadow-blue-500/20 transition-all transform hover:-translate-y-0.5">
+                    Start Analysis
+                </a>
+            </div>
+        </section>
 
-        <div class="bg-slate-950/50 border border-slate-800 p-6 rounded-xl text-center hover:border-blue-500/50 transition-all">
-            <div class="text-4xl mb-4">🤖</div>
-            <h3 class="font-bold text-white mb-2">AI Assistant</h3>
-            <p class="text-xs text-slate-400">Interact with an AI helper trained to answer complex questions.</p>
-        </div>
+        <!-- Key System Features Grid -->
+        <section class="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8 border-t border-slate-800/60">
+            <h2 class="text-2xl font-bold text-center text-white mb-12">Key System Features</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                
+                <div class="bg-slate-950/50 border border-slate-800 p-6 rounded-xl text-center hover:border-blue-500/50 transition-all">
+                    <div class="text-4xl mb-4">🌍</div>
+                    <h3 class="font-bold text-white mb-2">Interactive Map</h3>
+                    <p class="text-xs text-slate-400">Click to automatically extract real-world coordinates.</p>
+                </div>
 
-        <div class="bg-slate-950/50 border border-slate-800 p-6 rounded-xl text-center hover:border-blue-500/50 transition-all">
-            <div class="text-4xl mb-4">📊</div>
-            <h3 class="font-bold text-white mb-2">Charts</h3>
-            <p class="text-xs text-slate-400">Visualise time curves dynamically across spatial fields.</p>
-        </div>
+                <div class="bg-slate-950/50 border border-slate-800 p-6 rounded-xl text-center hover:border-blue-500/50 transition-all">
+                    <div class="text-4xl mb-4">🕒</div>
+                    <h3 class="font-bold text-white mb-2">Solar & Sidereal Time</h3>
+                    <p class="text-xs text-slate-400">Instant computation of LST, Equation of Time, and Julian Date.</p>
+                </div>
 
-        <div class="bg-slate-950/50 border border-slate-800 p-6 rounded-xl text-center hover:border-blue-500/50 transition-all">
-            <div class="text-4xl mb-4">📄</div>
-            <h3 class="font-bold text-white mb-2">Export PDF</h3>
-            <p class="text-xs text-slate-400">Generate clean reports of calculations for educational submissions.</p>
-        </div>
+                <div class="bg-slate-950/50 border border-slate-800 p-6 rounded-xl text-center hover:border-blue-500/50 transition-all">
+                    <div class="text-4xl mb-4">📊</div>
+                    <h3 class="font-bold text-white mb-2">Data Analytics</h3>
+                    <p class="text-xs text-slate-400">Interactive charts visualizing temporal astronomical drift.</p>
+                </div>
 
-    </div>
-</section>
-{% endblock %}
+                <div class="bg-slate-950/50 border border-slate-800 p-6 rounded-xl text-center hover:border-blue-500/50 transition-all">
+                    <div class="text-4xl mb-4">🤖</div>
+                    <h3 class="font-bold text-white mb-2">Groq AI Copilot</h3>
+                    <p class="text-xs text-slate-400">Ask questions and resolve geodetic field calculations.</p>
+                </div>
+
+                <div class="bg-slate-950/50 border border-slate-800 p-6 rounded-xl text-center hover:border-blue-500/50 transition-all">
+                    <div class="text-4xl mb-4">🔐</div>
+                    <h3 class="font-bold text-white mb-2">User System</h3>
+                    <p class="text-xs text-slate-400">Secure user registration and history storage.</p>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 bg-slate-950 py-6 text-center text-xs text-slate-500">
+        <p>&copy; 2026 AstroTime AI Project. Built for Geomatics & Field Astronomy Applications.</p>
+    </footer>
+
+</body>
+</html>
