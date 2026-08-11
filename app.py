@@ -70,9 +70,16 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-# Create Database Tables
+# Create Database Tables & Auto-Migrate
 with app.app_context():
     db.create_all()
+    # Auto-add missing user_id column if upgrading an existing SQLite database
+    try:
+        with db.engine.connect() as conn:
+            conn.execute(db.text("ALTER TABLE analysis_log ADD COLUMN user_id INTEGER REFERENCES user(id);"))
+            conn.commit()
+    except Exception:
+        pass  # Column already exists or table is newly created
 
 
 # ==========================================
