@@ -13,8 +13,8 @@ from groq import Groq
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'astrotime-secret-key-2026')
 
-# Database Setup (Supports SQLite locally and PostgreSQL on Render)
-db_url = os.environ.get("DATABASE_URL", "sqlite:///local_astrolog.db")
+# Database Setup (Renamed to astrotime_v2.db to force a clean database creation)
+db_url = os.environ.get("DATABASE_URL", "sqlite:///astrotime_v2.db")
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
@@ -70,16 +70,9 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-# Create Database Tables & Auto-Migrate
+# Build database tables
 with app.app_context():
     db.create_all()
-    # Auto-add missing user_id column if upgrading an existing SQLite database
-    try:
-        with db.engine.connect() as conn:
-            conn.execute(db.text("ALTER TABLE analysis_log ADD COLUMN user_id INTEGER REFERENCES user(id);"))
-            conn.commit()
-    except Exception:
-        pass  # Column already exists or table is newly created
 
 
 # ==========================================
