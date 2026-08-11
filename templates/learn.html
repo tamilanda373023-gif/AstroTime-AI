@@ -3,47 +3,339 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AstroTime AI - Learn</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Learning Center - AstroTime AI</title>
+    
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* --- NAVIGATION BAR --- */
+        .navbar {
+            background-color: #1a2a3a;
+            padding: 0.8rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-brand {
+            color: #ffffff;
+            font-size: 1.4rem;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .navbar-brand span {
+            color: #007bff;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 20px;
+        }
+
+        .nav-links a {
+            color: #d1d8e0;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: #ffffff;
+            background-color: #007bff;
+        }
+
+        /* --- CONTENT & HEADER --- */
+        .container {
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .header h1 {
+            color: #1a2a3a;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .chart-card {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s ease;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .chart-card h3 {
+            color: #2c3e50;
+            margin-bottom: 6px;
+            font-size: 1.15rem;
+        }
+
+        .chart-card p {
+            color: #7f8c8d;
+            font-size: 0.88rem;
+            margin-bottom: 15px;
+            height: 38px;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 280px;
+        }
+
+        @media (max-width: 600px) {
+            .navbar {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
-        <div class="container">
-            <a class="navbar-brand" href="/">🌌 AstroTime AI</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNavigationGrid">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="topNavigationGrid">
-                <ul class="navbar-nav ms-auto">
-                    <li><a class="nav-link" href="/">Home</a></li>
-                    <li><a class="nav-link" href="/analysis">Analysis</a></li>
-                    <li><a class="nav-link active" href="/learn">Learn</a></li>
-                    <li><a class="nav-link" href="/ai">AI Assistant</a></li>
-                    <li><a class="nav-link" href="/about">About</a></li>
-                </ul>
-            </div>
-        </div>
+
+    <!-- TOP NAVIGATION MENU BAR -->
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">AstroTime <span>AI</span></a>
+        <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/analysis">Analysis</a></li>
+            <li><a href="/learn" class="active">Learn</a></li>
+            <li><a href="/ai-assistant">AI Assistant</a></li>
+            <li><a href="/about">About</a></li>
+        </ul>
     </nav>
 
-    <main class="container my-5">
-        <h1 class="fw-bold mb-4">Educational Reference Center</h1>
-        <div class="row g-4">
-            <div class="col-md-6">
-                <div class="card p-4 h-100">
-                    <h3 class="h5 text-info fw-bold mb-3">Understanding Sidereal Time</h3>
-                    <p class="text-muted small">Sidereal time is a timekeeping system that astronomers and geomatics engineers use to locate celestial objects. Unlike solar time, which is based on Earth's rotation relative to the Sun, sidereal time is measured relative to the distant stars.</p>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card p-4 h-100">
-                    <h3 class="h5 text-warning fw-bold mb-3">The Equation of Time</h3>
-                    <p class="text-muted small">The Equation of Time describes the discrepancy between two kinds of solar time: Apparent Solar Time (sundial time) and Mean Solar Time (steady clock time), caused by Earth's elliptical orbit and axial tilt.</p>
-                </div>
-            </div>
+    <div class="container">
+        <div class="header">
+            <h1>Astronomical & Geomatics Visual Learning Center</h1>
+            <p>Interactive visualizations explaining solar calculations, time drifts, and coordinate offsets for surveying operations.</p>
         </div>
-    </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        <div class="chart-grid">
+
+            <!-- Chart 1: Equation of Time -->
+            <div class="chart-card">
+                <h3>1. Equation of Time (EoT) Curve</h3>
+                <p>Variance in minutes between Apparent Solar Time (sundial) and Mean Solar Time (clock) across 365 days.</p>
+                <div class="canvas-wrapper">
+                    <canvas id="eotChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 2: Solar vs Sidereal Time Drift -->
+            <div class="chart-card">
+                <h3>2. Solar vs. Sidereal Time Drift</h3>
+                <p>Demonstrates cumulative time gain of Sidereal time (~3.94 min/day) relative to standard solar time over 30 days.</p>
+                <div class="canvas-wrapper">
+                    <canvas id="driftChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 3: Solar Elevation & Azimuth -->
+            <div class="chart-card">
+                <h3>3. Solar Altitude & Azimuth Angles</h3>
+                <p>Solar trajectory throughout daylight hours used for field survey astronomical observation planning.</p>
+                <div class="canvas-wrapper">
+                    <canvas id="solarPosChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 4: Time Zone vs Solar Time Offset -->
+            <div class="chart-card">
+                <h3>4. Malaysian Location Longitude Offset (UTC+8)</h3>
+                <p>Local solar time deviation from standard clock time across Malaysian locations relative to 120°E meridian.</p>
+                <div class="canvas-wrapper">
+                    <canvas id="locationOffsetChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 5: Gregorian to Julian Date Conversion -->
+            <div class="chart-card">
+                <h3>5. Calendar Year vs Ordinal Day Mapping</h3>
+                <p>Linear mapping of calendar months to ordinal day count used in Julian Date determinations.</p>
+                <div class="canvas-wrapper">
+                    <canvas id="julianChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            // --- 1. EQUATION OF TIME CHART ---
+            const eotDays = [];
+            const eotValues = [];
+            for (let d = 1; d <= 365; d += 10) {
+                eotDays.push(`Day ${d}`);
+                let b = (2 * Math.PI / 365) * (d - 81);
+                let val = 9.87 * Math.sin(2 * b) - 7.53 * Math.cos(b) - 1.5 * Math.sin(b);
+                eotValues.push(val.toFixed(2));
+            }
+
+            new Chart(document.getElementById('eotChart'), {
+                type: 'line',
+                data: {
+                    labels: eotDays,
+                    datasets: [{
+                        label: 'EoT (Minutes)',
+                        data: eotValues,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    scales: { y: { title: { display: true, text: 'Variance (Minutes)' } } } 
+                }
+            });
+
+
+            // --- 2. SOLAR VS SIDEREAL DRIFT CHART ---
+            const days30 = Array.from({length: 30}, (_, i) => `Day ${i + 1}`);
+            const solarHours = days30.map((_, i) => (i + 1) * 24);
+            const siderealHours = days30.map((_, i) => ((i + 1) * 23.9344).toFixed(2));
+
+            new Chart(document.getElementById('driftChart'), {
+                type: 'line',
+                data: {
+                    labels: days30,
+                    datasets: [
+                        { label: 'Solar Hours Elapsed', data: solarHours, borderColor: '#28a745', tension: 0.1 },
+                        { label: 'Sidereal Hours Elapsed', data: siderealHours, borderColor: '#dc3545', tension: 0.1 }
+                    ]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    scales: { y: { title: { display: true, text: 'Cumulative Hours' } } } 
+                }
+            });
+
+
+            // --- 3. SOLAR POSITION CHART ---
+            const hours = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00'];
+            const elevation = [0, 25, 55, 80, 55, 25, 0];
+            const azimuth = [90, 105, 135, 180, 225, 255, 270];
+
+            new Chart(document.getElementById('solarPosChart'), {
+                type: 'line',
+                data: {
+                    labels: hours,
+                    datasets: [
+                        { label: 'Altitude (°)', data: elevation, borderColor: '#ffc107', yAxisID: 'y' },
+                        { label: 'Azimuth (°)', data: azimuth, borderColor: '#17a2b8', yAxisID: 'y1' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { type: 'linear', position: 'left', title: { display: true, text: 'Altitude (°)' } },
+                        y1: { type: 'linear', position: 'right', title: { display: true, text: 'Azimuth (°)' } }
+                    }
+                }
+            });
+
+
+            // --- 4. MALAYSIA LOCATION OFFSET CHART ---
+            new Chart(document.getElementById('locationOffsetChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Kota Kinabalu (116.07°E)', 'Kuantan (103.32°E)', 'Ipoh (101.09°E)', 'George Town (100.33°E)'],
+                    datasets: [{
+                        label: 'Solar Time Offset vs UTC+8 Standard (Minutes)',
+                        data: [-15.7, -66.7, -75.6, -78.6],
+                        backgroundColor: ['#6f42c1', '#20c997', '#fd7e14', '#e83e8c']
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { x: { title: { display: true, text: 'Minutes Offset from Standard Clock' } } }
+                }
+            });
+
+
+            // --- 5. JULIAN DAY MAPPING CHART ---
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const julianDays = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335];
+
+            new Chart(document.getElementById('julianChart'), {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Ordinal Day Count',
+                        data: julianDays,
+                        borderColor: '#6c757d',
+                        backgroundColor: 'rgba(108, 117, 125, 0.2)',
+                        fill: true
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    scales: { y: { title: { display: true, text: 'Day Count' } } } 
+                }
+            });
+
+        });
+    </script>
 </body>
 </html>
