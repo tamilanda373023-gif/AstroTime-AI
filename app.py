@@ -1,4 +1,5 @@
 import os
+import io
 import sqlite3
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template, g, redirect, url_for, session
@@ -6,6 +7,11 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from groq import Groq
 from werkzeug.security import generate_password_hash, check_password_hash
+
+# Document parsing libraries
+from pypdf import PdfReader
+from docx import Document
+import pandas as pd
 
 load_dotenv()
 
@@ -75,9 +81,13 @@ def inject_user():
 def home():
     return render_template("index.html")
 
+@app.route("/index", methods=["GET"])
+def index():
+    return render_template("index.html")
+
 @app.route("/ai", methods=["GET"])
 @app.route("/ai-assistant", methods=["GET"])
-def ai_page():
+def ai_assistant():
     return render_template("ai.html")
 
 @app.route("/learn", methods=["GET"])
@@ -156,12 +166,9 @@ def analysis():
                 "timezone": tz_offset
             }
 
-            # Parse input date and time combined with timezone to get UTC components
             dt_local_str = f"{date_str} {time_str}"
             dt_local = datetime.strptime(dt_local_str, "%Y-%m-%d %H:%M")
             
-            # Approximate conversion to UTC for astronomical calculations
-            # JD calculation algorithm based on standard astronomical formulas
             year = dt_local.year
             month = dt_local.month
             day = dt_local.day
@@ -179,20 +186,17 @@ def analysis():
             
             jd = int(365.25 * (year + 4716)) + int(30.6001 * (month + 1)) + fractional_day + B - 1524.5
             
-            # Calculations for GMST, LMST, EoT, LAST, Solar Time
             d = jd - 2451545.0
             gmst_deg = (280.46061837 + 360.98564736629 * d) % 360.0
             if gmst_deg < 0:
                 gmst_deg += 360.0
                 
-            # Convert GMST degrees to Hours:Minutes:Seconds string
             gmst_hours = gmst_deg / 15.0
             g_h = int(gmst_hours)
             g_m = int((gmst_hours - g_h) * 60)
             g_s = int(((gmst_hours - g_h) * 60 - g_m) * 60)
             gmst_str = f"{g_h:02d}h {g_m:02d}m {g_s:02d}s"
 
-            # Local Mean Sidereal Time (LMST) = GMST + Longitude (in hours)
             lmst_hours = (gmst_hours + (lng / 15.0)) % 24.0
             if lmst_hours < 0:
                 lmst_hours += 24.0
@@ -201,7 +205,6 @@ def analysis():
             l_s = int(((lmst_hours - l_h) * 60 - l_m) * 60)
             lmst_str = f"{l_h:02d}h {l_m:02d}m {l_s:02d}s"
 
-            # Equation of Time approximation (in minutes)
             b_val = (2.0 * 3.141592653589793 * (d - 81)) / 365.25
             eot_val = 9.87 * __import__('math').sin(2 * b_val) - 7.53 * __import__('math').cos(b_val) - 1.5 * __import__('math').sin(b_val)
 
@@ -258,6 +261,42 @@ def delete_chat(chat_id):
     db.commit()
     return jsonify({"status": "success"})
 
+def extract_file_content(file_storage):
+    """Universal parser for PDFs, Word, Excel, CSVs, code, and text files."""
+    filename = file_storage.filename.lower()
+    file_bytes = file_storage.read()
+    extracted_text = ""
+
+    try:
+        if filename.endswith('.pdf'):
+            reader = PdfReader(io.BytesIO(file_bytes))
+            for page in reader.pages:
+                extracted_text += (page.extract_text() or "") + "\n"
+
+        elif filename.endswith('.docx'):
+            doc = Document(io.BytesIO(file_bytes))
+            for para in doc.paragraphs:
+                extracted_text += para.text + "\n"
+            for table in doc.tables:
+                for row in table.rows:
+                    extracted_text += " | ".join([cell.text.strip() for cell in row.cells]) + "\n"
+
+        elif filename.endswith(('.xlsx', '.xls')):
+            df_dict = pd.read_excel(io.BytesIO(file_bytes), sheet_name=None)
+            for sheet_name, df in df_dict.items():
+                extracted_text += f"\n--- Sheet: {sheet_name} ---\n"
+                extracted_text += df.to_string(index=False) + "\n"
+
+        else:
+            # Fallback for code files, text files, markdown, json, csv, etc.
+            extracted_text = file_bytes.decode('utf-8', errors='ignore')
+
+    except Exception as e:
+        extracted_text = f"[Error reading file content: {str(e)}]"
+
+    # Cap text length to prevent overflow
+    return extracted_text[:6000]
+
 @app.route("/api/chat", methods=["POST"])
 def chat():
     try:
@@ -271,11 +310,8 @@ def chat():
         file_content = ""
         if file:
             filename = file.filename
-            if filename.endswith(('.txt', '.csv', '.py', '.json', '.md', '.log')):
-                file_text = file.read().decode('utf-8', errors='ignore')
-                file_content = f"\n\n[Attached File: {filename}]\n```\n{file_text[:4000]}\n```"
-            else:
-                file_content = f"\n\n[Attached File: {filename} uploaded]"
+            parsed_text = extract_file_content(file)
+            file_content = f"\n\n[Attached File Content ({filename}):]\n```\n{parsed_text}\n```"
 
         full_message = message + file_content
         db = get_db()
