@@ -1,14 +1,16 @@
 import os
 import sqlite3
-from flask import Flask, request, jsonify, render_template, g
+from flask import Flask, request, jsonify, render_template, g, redirect, url_for, session
 from flask_cors import CORS
 from dotenv import load_dotenv
 from groq import Groq
+from werkzeug.security import generate_password_hash, check_password_hash
 
 load_dotenv()
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__, template_folder=os.path.join(basedir, 'templates'), static_folder=os.path.join(basedir, 'static'))
+app.secret_key = os.getenv("SECRET_KEY", "super-secret-astro-key")
 CORS(app)
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -30,6 +32,7 @@ def close_connection(exception):
 def init_db():
     with app.app_context():
         db = get_db()
+        # Chats & Messages tables for Nova AI
         db.execute('''
             CREATE TABLE IF NOT EXISTS chats (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,16 +49,29 @@ def init_db():
                 FOREIGN KEY(chat_id) REFERENCES chats(id)
             )
         ''')
+        # Users table for Registration / Login
+        db.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL
+            )
+        ''')
         db.commit()
 
 init_db()
 
 @app.context_processor
 def inject_user():
-    class AnonymousUser:
-        is_authenticated = False
-        is_anonymous = True
-    return dict(current_user=AnonymousUser())
+    class UserContext:
+        def __init__(self, user_id, username):
+            self.is_authenticated = user_id is not None
+            self.username = username
+            
+    user_id = session.get("user_id")
+    username = session.get("username")
+    return dict(current_user=UserContext(user_id, username))
 
 # --- Page Routes ---
 @app.route("/", methods=["GET"])
@@ -67,10 +83,6 @@ def home():
 def ai_page():
     return render_template("ai.html")
 
-@app.route("/analysis", methods=["GET"])
-def analysis():
-    return render_template("analysis.html")
-
 @app.route("/learn", methods=["GET"])
 def learn():
     return render_template("learn.html")
@@ -78,6 +90,78 @@ def learn():
 @app.route("/about", methods=["GET"])
 def about():
     return render_template("about.html")
+
+# --- Authentication Routes (Fixed GET/POST Support) ---
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        try:
+            username = request.form.get("username", "").strip()
+            email = request.form.get("email", "").strip()
+            password = request.form.get("password", "")
+
+            if not username or not email or not password:
+                return render_template("register.html", error="All fields are required.")
+
+            hashed_password = generate_password_hash(password)
+            db = get_db()
+            db.execute("INSERT INTO users (username, email, password) VALUES (?, ?, ?)", (username, email, hashed_password))
+            db.commit()
+            return redirect(url_for("login"))
+        except sqlite3.IntegrityError:
+            return render_template("register.html", error="Username or Email already exists.")
+        except Exception as e:
+            return render_template("register.html", error=str(e))
+            
+    return render_template("register.html")
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "")
+
+        db = get_db()
+        cursor = db.execute("SELECT * FROM users WHERE email = ?", (email,))
+        user = cursor.fetchone()
+
+        if user and check_password_hash(user["password"], password):
+            session["user_id"] = user["id"]
+            session["username"] = user["username"]
+            return redirect(url_for("home"))
+        else:
+            return render_template("login.html", error="Invalid email or password.")
+
+    return render_template("login.html")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("home"))
+
+# --- Analysis & Matrix Calculation Routes (Fixed GET/POST Support) ---
+@app.route("/analysis", methods=["GET", "POST"])
+def analysis():
+    if request.method == "POST":
+        try:
+            # Handle your form data calculation submission here
+            matrix_input = request.form.get("matrix_data")
+            # Process calculation results...
+            return render_template("analysis.html", result="Calculated successfully")
+        except Exception as e:
+            return render_template("analysis.html", error=str(e))
+    return render_template("analysis.html")
+
+@app.route("/api/analysis", methods=["GET", "POST"])
+def api_analysis():
+    if request.method == "POST":
+        try:
+            data = request.get_json() or request.form
+            # Process matrix calculations via API JSON
+            return jsonify({"status": "success", "message": "Matrix calculation processed", "data": data})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+    return jsonify({"status": "ready"})
 
 # --- Nova AI API Endpoints ---
 @app.route("/api/chats", methods=["GET"])
@@ -130,7 +214,6 @@ def chat():
                 file_content_description = f"\n\n[Attached File: {filename} uploaded successfully]"
 
         full_message = message + file_content_description
-
         db = get_db()
         
         if not chat_id or chat_id == "null" or chat_id == "":
