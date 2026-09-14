@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AstroBot - Gemini Replica Engine</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.globe.min.js"></script>
+
+    <!-- KaTeX for math formulas -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        html, body { margin: 0; padding: 0; width: 100%; min-height: 100vh; overflow-x: hidden; background-color: #030712; }
+        #vanta-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; pointer-events: none; }
+        .ui-overlay { position: relative; z-index: 10; }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        #chat-messages::-webkit-scrollbar { width: 6px; }
+        #chat-messages::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); border-radius: 8px; }
+        #chat-messages::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 8px; }
+        .typing-dot { animation: typing 1.4s infinite ease-in-out both; }
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+            40% { opacity: 1; transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body class="text-white font-sans antialiased min-h-screen flex flex-col justify-between">
+    
+    <div id="vanta-canvas"></div>
+
+    <div class="ui-overlay min-h-screen flex flex-col justify-between">
+        <!-- Header -->
+        <header class="glass-card sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b border-slate-800">
+            <div class="flex items-center space-x-3">
+                <a href="/" class="text-2xl font-extrabold bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent tracking-wider">AstroBot</a>
+                <span class="text-xs font-mono bg-blue-500/10 border border-blue-500/30 text-blue-400 px-2 py-0.5 rounded-full">Gemini Advanced Core</span>
+            </div>
+            <div class="flex items-center space-x-3 text-xs">
+                <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Online
+                </span>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="container mx-auto px-4 py-6 flex-grow flex flex-col space-y-4 max-w-4xl">
+            <div class="glass-card p-4 rounded-2xl border border-slate-700/60 flex justify-between items-center">
+                <div>
+                    <h1 class="text-xl font-bold text-blue-400 flex items-center gap-2">
+                        <span>✨</span> Hello, I am AstroBot
+                    </h1>
+                    <p class="text-xs text-slate-400">Ask me anything, explore deep technical topics, or request real-world calculation examples.</p>
+                </div>
+                <button onclick="clearChatHistory()" class="text-xs font-mono text-slate-400 hover:text-red-400 bg-slate-900/60 border border-slate-800 px-3 py-1.5 rounded-xl transition">
+                    🗑️ New Chat
+                </button>
+            </div>
+
+            <!-- Chat Window -->
+            <div class="glass-card flex-grow p-4 rounded-2xl border border-slate-700/60 flex flex-col justify-between h-[580px]">
+                <!-- Message Thread -->
+                <div id="chat-messages" class="flex-grow overflow-y-auto space-y-4 pr-2 text-xs">
+                    <div class="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 text-slate-300 max-w-[92%] shadow-lg space-y-2">
+                        <span class="text-blue-400 font-bold font-mono block flex items-center gap-1.5">
+                            <span>✨</span> AstroBot
+                        </span>
+                        <p class="leading-relaxed">
+                            Hello! How can I help you today? Feel free to ask a question or pick one of the suggestions below to get started.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Input Form -->
+                <form id="chat-form" class="mt-4 flex space-x-2">
+                    <input type="text" id="chat-input" placeholder="Ask AstroBot anything..." 
+                           class="flex-grow bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-blue-500 font-mono transition shadow-inner">
+                    <button type="submit" id="send-btn" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-6 py-3 rounded-xl transition flex items-center space-x-1 shadow-lg shadow-blue-600/20">
+                        <span>Send</span>
+                        <span>⚡</span>
+                    </button>
+                </form>
+            </div>
+        </main>
+
+        <footer class="glass-card py-4 text-center text-xs text-slate-500 border-t border-slate-800">
+            AstroBot Powered by Gemini Architecture &copy; 2026
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        let currentContextTopic = "general";
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (typeof VANTA !== 'undefined') {
+                VANTA.GLOBE({
+                    el: "#vanta-canvas", mouseControls: true, touchControls: true, gyroControls: false,
+                    minHeight: 200.00, minWidth: 200.00, scale: 1.00, scaleMobile: 1.00,
+                    color: 0x3b82f6, color2: 0x60a5fa, backgroundColor: 0x030712, size: 0.90
+                });
+            }
+        });
+
+        const form = document.getElementById('chat-form');
+        const input = document.getElementById('chat-input');
+        const messages = document.getElementById('chat-messages');
+        const sendBtn = document.getElementById('send-btn');
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = input.value.trim();
+            if (text) {
+                sendMessage(text);
+                input.value = '';
+            }
+        });
+
+        function sendQuickPrompt(promptText) {
+            sendMessage(promptText);
+        }
+
+        async function sendMessage(msgText) {
+            const userBubble = document.createElement('div');
+            userBubble.className = 'bg-blue-600/30 p-3.5 rounded-2xl border border-blue-500/40 text-blue-100 ml-auto max-w-[85%] shadow-md';
+            userBubble.innerHTML = `<span class="text-blue-300 font-bold font-mono block mb-1">You</span><div class="leading-relaxed font-mono">${escapeHTML(msgText)}</div>`;
+            messages.appendChild(userBubble);
+            scrollToBottom();
+
+            const typingBubble = document.createElement('div');
+            typingBubble.id = 'typing-indicator';
+            typingBubble.className = 'bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 text-slate-400 max-w-[92%] flex items-center space-x-2 font-mono';
+            typingBubble.innerHTML = `
+                <span class="text-blue-400 font-bold">AstroBot</span>
+                <span class="text-slate-500">thinking</span>
+                <span class="flex space-x-1 items-center">
+                    <span class="w-1.5 h-1.5 bg-blue-400 rounded-full typing-dot"></span>
+                    <span class="w-1.5 h-1.5 bg-blue-400 rounded-full typing-dot"></span>
+                    <span class="w-1.5 h-1.5 bg-blue-400 rounded-full typing-dot"></span>
+                </span>
+            `;
+            messages.appendChild(typingBubble);
+            scrollToBottom();
+            toggleInputState(true);
+
+            setTimeout(() => {
+                const indicator = document.getElementById('typing-indicator');
+                if (indicator) indicator.remove();
+
+                const responseObj = generateAstroBotResponse(msgText);
+
+                const aiBubble = document.createElement('div');
+                aiBubble.className = 'bg-slate-900/95 p-4 rounded-2xl border border-slate-800 text-slate-300 max-w-[92%] shadow-xl space-y-3';
+                aiBubble.innerHTML = `
+                    <span class="text-blue-400 font-bold font-mono block flex items-center gap-1.5">
+                        <span>✨</span> AstroBot
+                    </span>
+                    <div class="leading-relaxed space-y-3 text-xs">${responseObj.htmlContent}</div>
+                    
+                    <div class="pt-3 border-t border-slate-800/80 space-y-1.5">
+                        <span class="text-[10px] font-mono text-slate-400 block uppercase tracking-wider">Suggested follow-ups:</span>
+                        <div class="flex flex-wrap gap-2">
+                            ${responseObj.recommendations.map(rec => `
+                                <button onclick="sendQuickPrompt('${escapeHTML(rec.text).replace(/'/g, "\\'")}')" 
+                                        class="bg-blue-950/40 hover:bg-blue-600/30 border border-blue-500/30 hover:border-blue-400 text-blue-200 text-[11px] font-mono px-3 py-1.5 rounded-xl transition flex items-center gap-1 shadow-sm">
+                                    <span>💡</span> ${escapeHTML(rec.text)}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                messages.appendChild(aiBubble);
+
+                renderMathInElement(aiBubble, {
+                    delimiters: [{left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}],
+                    throwOnError: false
+                });
+
+                toggleInputState(false);
+                scrollToBottom();
+            }, 700);
+        }
+
+        // AstroBot Core Router (Seamless context and anti-loop logic)
+        function generateAstroBotResponse(query) {
+            const q = query.toLowerCase().trim();
+            let htmlContent = "";
+            let recommendations = [];
+
+            if (['hi', 'hello', 'hey', 'greetings', 'sup'].includes(q)) {
+                currentContextTopic = "general";
+                htmlContent = `<p>Hello! I am AstroBot. How can I assist you today? Feel free to ask a technical question or explore any topic.</p>`;
+                recommendations = [
+                    { text: "How to calculate solar time" },
+                    { text: "Explain quantum entanglement" },
+                    { text: "How do GPS satellites use relativity?" }
+                ];
+            } 
+            else if (q.includes('solar time') || q.includes('real-world example') || q.includes('calculate sol') && currentContextTopic === "solar_time" || (q.includes('solar') && q.includes('calculate'))) {
+                currentContextTopic = "solar_time";
+                htmlContent = `
+                    <p>Let's walk through a concrete, real-world calculation of <strong>Apparent Solar Time (AST)</strong>.</p>
+                    <p><strong>Scenario:</strong> You are standing in Kuala Lumpur ($3.1390^\\circ\\text{N}, 101.6869^\\circ\\text{E}$) on April 15th at 12:00:00 PM standard clock time (UTC+8).</p>
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1 font-mono text-slate-300">
+                        <div>1️⃣ <strong>Standard Meridian ($\\lambda_{\\text{std}}$):</strong> UTC+8 corresponds to $120^\\circ\\text{E}$.</div>
+                        <div>2️⃣ <strong>Longitude Correction:</strong> $101.6869^\\circ - 120^\\circ = -18.3131^\\circ$. Multiplying by 4 minutes gives $\\approx -73.25\\text{ mins}$.</div>
+                        <div>3️⃣ <strong>Equation of Time (EoT):</strong> On April 15th, EoT is approximately $+0.1\\text{ mins}$.</div>
+                        <div class="text-emerald-400 font-bold pt-1">Result Apparent Solar Time: 10:46:45 AM</div>
+                    </div>
+                    <p>Even though your standard wall clock reads noon, the Sun has not yet reached its highest point in your local sky!</p>
+                `;
+                recommendations = [
+                    { text: "What is the Equation of Time?" },
+                    { text: "How does longitude affect local time zones?" },
+                    { text: "Explain Universal Time UT1 vs UTC" }
+                ];
+            }
+            else if (q.includes('quantum') || q.includes('physics')) {
+                currentContextTopic = "quantum";
+                htmlContent = `
+                    <p>Quantum mechanics governs matter and energy at atomic scales. The core equation describing how quantum states evolve over time is the Schrödinger equation:</p>
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 font-mono text-center">
+                        $$i\\hbar \\frac{\\partial}{\\partial t} |\\psi(t)\\rangle = \\hat{H} |\\psi(t)\\rangle$$
+                    </div>
+                    <p>This formulation allows physicists to calculate probability distributions across multiple energy states.</p>
+                `;
+                recommendations = [
+                    { text: "What is quantum superposition?" },
+                    { text: "How does quantum entanglement work?" },
+                    { text: "Give me a real-world application of quantum computing" }
+                ];
+            }
+            else {
+                currentContextTopic = "custom";
+                htmlContent = `
+                    <p>Analyzing your query regarding <strong>"${escapeHTML(query)}"</strong> requires looking at the core parameters and boundary conditions involved:</p>
+                    <ul class="list-disc pl-5 space-y-1 text-slate-300">
+                        <li><strong>System Baseline:</strong> Evaluates variable interactions under standard operational settings.</li>
+                        <li><strong>Output Variance:</strong> Yields precise adjustments when scale factors change.</li>
+                    </ul>
+                    <p class="mt-2">Would you like a step-by-step mathematical breakdown or a real-world example for this topic?</p>
+                `;
+                recommendations = [
+                    { text: "Can you provide a step-by-step mathematical proof?" },
+                    { text: "Give me a real-world example of this" },
+                    { text: "What are the main edge cases or limitations?" }
+                ];
+            }
+
+            return { htmlContent, recommendations };
+        }
+
+        function scrollToBottom() { messages.scrollTop = messages.scrollHeight; }
+        function toggleInputState(disabled) {
+            input.disabled = disabled;
+            sendBtn.disabled = disabled;
+            if (disabled) sendBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            else { sendBtn.classList.remove('opacity-50', 'cursor-not-allowed'); input.focus(); }
+        }
+        function clearChatHistory() {
+            currentContextTopic = "general";
+            messages.innerHTML = `
+                <div class="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 text-slate-300 max-w-[92%] shadow-lg space-y-2">
+                    <span class="text-blue-400 font-bold font-mono block flex items-center gap-1.5">
+                        <span>✨</span> AstroBot
+                    </span>
+                    <p class="leading-relaxed">Chat reset. Ask AstroBot a new question!</p>
+                </div>
+            `;
+        }
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        }
+    </script>
+</body>
+</html>

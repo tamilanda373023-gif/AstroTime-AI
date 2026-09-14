@@ -1,269 +1,181 @@
 import os
-import math
-from datetime import datetime
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
+import sqlite3
+from flask import Flask, request, jsonify, render_template, g
+from flask_cors import CORS
+from dotenv import load_dotenv
 from groq import Groq
 
-# ==========================================
-# 1. APPLICATION & CONFIGURATION SETUP
-# ==========================================
-app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'astrotime-secret-key-2026')
+load_dotenv()
 
-# Database Setup (Renamed to astrotime_v2.db to force a clean database creation)
-db_url = os.environ.get("DATABASE_URL", "sqlite:///astrotime_v2.db")
-if db_url.startswith("postgres://"):
-    db_url = db_url.replace("postgres://", "postgresql://", 1)
+basedir = os.path.abspath(os.path.dirname(__file__))
+app = Flask(__name__, template_folder=os.path.join(basedir, 'templates'), static_folder=os.path.join(basedir, 'static'))
+CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = db_url
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+DATABASE = os.path.join(basedir, 'nova_ai.db')
 
-db = SQLAlchemy(app)
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(DATABASE)
+        db.row_factory = sqlite3.Row
+    return db
 
-# Login Manager Initialization
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
 
-# Groq AI Client Setup
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "gsk_YOUR_GROQ_API_KEY_HERE")
-groq_client = Groq(api_key=GROQ_API_KEY)
+def init_db():
+    with app.app_context():
+        db = get_db()
+        db.execute('''
+            CREATE TABLE IF NOT EXISTS chats (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        db.execute('''
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                chat_id INTEGER,
+                role TEXT,
+                content TEXT,
+                FOREIGN KEY(chat_id) REFERENCES chats(id)
+            )
+        ''')
+        db.commit()
 
+init_db()
 
-# ==========================================
-# 2. DATABASE MODELS
-# ==========================================
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+@app.context_processor
+def inject_user():
+    class AnonymousUser:
+        is_authenticated = False
+        is_anonymous = True
+    return dict(current_user=AnonymousUser())
 
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+# --- Page Routes ---
+@app.route("/", methods=["GET"])
+def home():
+    return render_template("index.html")
 
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+@app.route("/ai", methods=["GET"])
+@app.route("/ai-assistant", methods=["GET"])
+def ai_page():
+    return render_template("ai.html")
 
-
-class AnalysisLog(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    latitude = db.Column(db.Float, nullable=False)
-    longitude = db.Column(db.Float, nullable=False)
-    input_date = db.Column(db.String(20), nullable=False)
-    input_time = db.Column(db.String(20), nullable=False)
-    timezone_offset = db.Column(db.Float, nullable=False)
-    julian_date = db.Column(db.Float)
-    eot_minutes = db.Column(db.Float)
-    solar_time = db.Column(db.String(10))
-    sidereal_time = db.Column(db.String(10))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
-
-
-# Build database tables
-with app.app_context():
-    db.create_all()
-
-
-# ==========================================
-# 3. ASTRONOMICAL COMPUTATION LOGIC
-# ==========================================
-def calculate_astronomy_data(lat, lon, date_str, time_str, tz_offset):
-    dt_local = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
-    day_of_year = dt_local.timetuple().tm_yday
-    
-    local_hours = dt_local.hour + (dt_local.minute / 60.0)
-    utc_hours = (local_hours - tz_offset) % 24
-
-    # Julian Date Calculation
-    year, month, day = dt_local.year, dt_local.month, dt_local.day
-    if month <= 2:
-        year -= 1
-        month += 12
-    
-    a = math.floor(year / 100)
-    b = 2 - a + math.floor(a / 4)
-    jd0 = math.floor(365.25 * (year + 4716)) + math.floor(30.6001 * (month + 1)) + day + b - 1524.5
-    julian_date = jd0 + (utc_hours / 24.0)
-
-    # Equation of Time (EoT)
-    b_rad = math.radians((360.0 / 365.0) * (day_of_year - 81))
-    eot = 9.87 * math.sin(2 * b_rad) - 7.53 * math.cos(b_rad) - 1.5 * math.sin(b_rad)
-
-    # Local Solar Time
-    standard_meridian = 15.0 * tz_offset
-    time_correction = 4.0 * (lon - standard_meridian) + eot
-    solar_hours_decimal = (local_hours + (time_correction / 60.0)) % 24
-    
-    sh = int(solar_hours_decimal)
-    sm = int((solar_hours_decimal - sh) * 60)
-    solar_time = f"{sh:02d}:{sm:02d}"
-
-    # Local Sidereal Time (LST)
-    days_since_j2000 = julian_date - 2451545.0
-    gmst = (18.697374558 + 24.06570982441908 * days_since_j2000) % 24
-    lst_decimal = (gmst + (lon / 15.0)) % 24
-    
-    lh = int(lst_decimal)
-    lm = int((lst_decimal - lh) * 60)
-    sidereal_time = f"{lh:02d}:{lm:02d}"
-
-    return {
-        "julian_date": round(julian_date, 5),
-        "eot": round(eot, 2),
-        "solar_time": solar_time,
-        "sidereal_time": sidereal_time
-    }
-
-
-# ==========================================
-# 4. ROUTE CONTROLLERS
-# ==========================================
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/analysis')
+@app.route("/analysis", methods=["GET"])
 def analysis():
-    return render_template('analysis.html')
+    return render_template("analysis.html")
 
-@app.route('/learn')
+@app.route("/learn", methods=["GET"])
 def learn():
-    return render_template('learn.html')
+    return render_template("learn.html")
 
-@app.route('/ai-assistant')
-def ai_assistant():
-    return render_template('ai.html')
-
-@app.route('/about')
+@app.route("/about", methods=["GET"])
 def about():
-    return render_template('about.html')
+    return render_template("about.html")
 
+# --- Nova AI API Endpoints ---
+@app.route("/api/chats", methods=["GET"])
+def get_chats():
+    db = get_db()
+    cursor = db.execute("SELECT id, title FROM chats ORDER BY id DESC")
+    chats = [dict(row) for row in cursor.fetchall()]
+    return jsonify(chats)
 
-# ==========================================
-# 5. USER AUTHENTICATION ROUTES
-# ==========================================
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
+@app.route("/api/chats", methods=["POST"])
+def create_chat():
+    db = get_db()
+    cursor = db.execute("INSERT INTO chats (title) VALUES (?)", ("New Chat",))
+    db.commit()
+    chat_id = cursor.lastrowid
+    return jsonify({"chat_id": chat_id, "title": "New Chat"})
 
-        if User.query.filter_by(username=username).first():
-            flash('Username already taken!')
-            return redirect(url_for('register'))
+@app.route("/api/chats/<int:chat_id>", methods=["GET"])
+def get_chat_messages(chat_id):
+    db = get_db()
+    cursor = db.execute("SELECT role, content FROM messages WHERE chat_id = ? ORDER BY id ASC", (chat_id,))
+    messages = [dict(row) for row in cursor.fetchall()]
+    return jsonify(messages)
 
-        user = User(username=username, email=email)
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
+@app.route("/api/chats/<int:chat_id>", methods=["DELETE"])
+def delete_chat(chat_id):
+    db = get_db()
+    db.execute("DELETE FROM messages WHERE chat_id = ?", (chat_id,))
+    db.execute("DELETE FROM chats WHERE id = ?", (chat_id,))
+    db.commit()
+    return jsonify({"status": "success"})
 
-        login_user(user)
-        return redirect(url_for('index'))
-
-    return render_template('register.html')
-
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        user = User.query.filter_by(username=username).first()
-
-        if user and user.check_password(password):
-            login_user(user)
-            return redirect(url_for('index'))
-        
-        flash('Invalid username or password')
-
-    return render_template('login.html')
-
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('index'))
-
-
-# ==========================================
-# 6. API ENDPOINTS
-# ==========================================
-@app.route('/api/calculate', methods=['POST'])
-def calculate():
-    try:
-        data = request.get_json()
-        lat = float(data['latitude'])
-        lon = float(data['longitude'])
-        date_str = data['date']
-        time_str = data['time']
-        tz_offset = float(data['timezone'])
-
-        results = calculate_astronomy_data(lat, lon, date_str, time_str, tz_offset)
-
-        # Log into database
-        user_id = current_user.id if current_user.is_authenticated else None
-        log_entry = AnalysisLog(
-            user_id=user_id,
-            latitude=lat,
-            longitude=lon,
-            input_date=date_str,
-            input_time=time_str,
-            timezone_offset=tz_offset,
-            julian_date=results['julian_date'],
-            eot_minutes=results['eot'],
-            solar_time=results['solar_time'],
-            sidereal_time=results['sidereal_time']
-        )
-        db.session.add(log_entry)
-        db.session.commit()
-
-        return jsonify({"success": True, "results": results})
-
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 400
-
-
-@app.route('/api/chat', methods=['POST'])
+@app.route("/api/chat", methods=["POST"])
 def chat():
     try:
-        data = request.get_json()
-        user_message = data.get('message', '').strip()
+        chat_id = request.form.get("chat_id")
+        message = request.form.get("message", "").strip()
+        file = request.files.get("file")
 
-        if not user_message:
-            return jsonify({"response": "Please enter a valid question."})
+        if not message and not file:
+            return jsonify({"error": "Message or file cannot be empty"}), 400
 
-        completion = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": "You are AstroTime AI, an expert astronomical and geomatics co-pilot helping students and surveyors with solar time, sidereal drift, coordinate transformations, and field astronomical calculations."},
-                {"role": "user", "content": user_message}
-            ],
+        file_content_description = ""
+        if file:
+            filename = file.filename
+            if filename.endswith(('.txt', '.csv', '.py', '.json', '.md', '.log')):
+                file_text = file.read().decode('utf-8', errors='ignore')
+                file_content_description = f"\n\n[Attached File: {filename}]\n```\n{file_text[:4000]}\n```"
+            else:
+                file_content_description = f"\n\n[Attached File: {filename} uploaded successfully]"
+
+        full_message = message + file_content_description
+
+        db = get_db()
+        
+        if not chat_id or chat_id == "null" or chat_id == "":
+            cursor = db.execute("INSERT INTO chats (title) VALUES (?)", ((message[:30] or "File Upload") + "...",))
+            db.commit()
+            chat_id = cursor.lastrowid
+        else:
+            chat_id = int(chat_id)
+            cursor = db.execute("SELECT title FROM chats WHERE id = ?", (chat_id,))
+            row = cursor.fetchone()
+            if row and row['title'] == 'New Chat':
+                db.execute("UPDATE chats SET title = ? WHERE id = ?", ((message[:30] or "File Upload") + "...", chat_id))
+                db.commit()
+
+        db.execute("INSERT INTO messages (chat_id, role, content) VALUES (?, ?, ?)", (chat_id, "user", full_message))
+        db.commit()
+
+        cursor = db.execute("SELECT role, content FROM messages WHERE chat_id = ? ORDER BY id ASC", (chat_id,))
+        history = [{"role": row["role"], "content": row["content"]} for row in cursor.fetchall()]
+
+        system_prompt = {
+            "role": "system",
+            "content": "You are Nova AI, a professional, highly capable astronomical and geodetic assistant built for Astro Time AI. Use markdown, tables, and LaTeX equations where appropriate."
+        }
+        
+        messages_payload = [system_prompt] + history
+
+        completion = client.chat.completions.create(
+            model="openai/gpt-oss-20b",
+            messages=messages_payload,
+            stream=False,
             temperature=0.7,
-            max_tokens=1024
+            max_completion_tokens=2048
         )
 
         reply = completion.choices[0].message.content
-        return jsonify({"response": reply})
+
+        db.execute("INSERT INTO messages (chat_id, role, content) VALUES (?, ?, ?)", (chat_id, "assistant", reply))
+        db.commit()
+
+        return jsonify({"chat_id": chat_id, "reply": reply})
 
     except Exception as e:
-        return jsonify({"response": f"AI Connection Error: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
-
-# ==========================================
-# 7. MAIN EXECUTION
-# ==========================================
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)

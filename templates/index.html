@@ -1,100 +1,341 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="h-full bg-slate-950">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AstroTime AI - Geodetic & Astronomical Co-Pilot</title>
+    <title>AstroTime AI - Observatory-Grade Celestial Telemetry</title>
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Three.js (r134) & Vanta.js Globe CDNs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.globe.min.js"></script>
+
+    <style>
+        /* Fullscreen Vanta Globe Background canvas styles */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-color: #030712;
+        }
+
+        #vanta-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .ui-overlay {
+            position: relative;
+            z-index: 10;
+        }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .glass-card-hover {
+            transition: all 0.3s ease;
+        }
+        .glass-card-hover:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 30px -10px rgba(59, 130, 246, 0.2);
+        }
+    </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+<body class="text-white font-sans antialiased min-h-screen flex flex-col justify-between">
 
-    <!-- Header & Navigation Bar -->
-    <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
-            <!-- Brand Logo -->
-            <a href="/" class="flex items-center space-x-3">
-                <span class="text-2xl">🌌</span>
-                <span class="font-bold text-xl tracking-wide text-white">AstroTime <span class="text-blue-500">AI</span></span>
-            </a>
+    <!-- Vanta 3D Globe Background Canvas Container -->
+    <div id="vanta-canvas"></div>
 
-            <!-- Dynamic Navigation Bar with User System -->
-            <nav class="flex items-center space-x-6 text-sm font-medium">
-                <a href="/" class="text-blue-400 hover:text-blue-300 transition-colors">Home</a>
-                <a href="/analysis" class="text-slate-300 hover:text-white transition-colors">Analysis</a>
-                <a href="/learn" class="text-slate-300 hover:text-white transition-colors">Learn</a>
-                <a href="/ai-assistant" class="text-slate-300 hover:text-white transition-colors">AI Assistant</a>
-                <a href="/about" class="text-slate-300 hover:text-white transition-colors">About</a>
-                
-                {% if current_user.is_authenticated %}
-                    <span class="text-slate-400 border-l border-slate-700 pl-4">Hi, <strong class="text-white">{{ current_user.username }}</strong></span>
-                    <a href="/logout" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg transition-colors border border-slate-700">Logout</a>
-                {% else %}
-                    <a href="/login" class="text-slate-300 hover:text-white transition-colors border-l border-slate-700 pl-4">Login</a>
-                    <a href="/register" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors shadow-md shadow-blue-500/20">Register</a>
-                {% endif %}
-            </nav>
+    <!-- Main UI Container Overlay -->
+    <div class="ui-overlay min-h-screen flex flex-col justify-between">
+        
+        <!-- Top System Status Bar -->
+        <div class="bg-slate-900/90 border-b border-slate-800 py-2 px-6 text-xs flex justify-between items-center text-slate-400 font-mono">
+            <div class="flex space-x-6">
+                <span>System Status: <strong class="text-emerald-400">Operational</strong></span>
+                <span>Target Epoch: <strong class="text-blue-400">J2000.0 / Current UTC</strong></span>
+            </div>
+            <div class="text-slate-500 hidden sm:block">Standards: IAU 2006 / IERS Bulletin A</div>
         </div>
-    </header>
 
-    <main class="flex-grow">
-        <!-- Hero Section -->
-        <section class="max-w-7xl mx-auto px-4 pt-16 pb-12 text-center sm:px-6 lg:px-8">
-            <div class="max-w-3xl mx-auto">
-                <h1 class="text-4xl sm:text-5xl font-extrabold text-white tracking-tight mb-6">
-                    Precision Field Astronomy & Geodetic Computing
+        <!-- Header Navigation with Login & Register Links -->
+        <header class="glass-card sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b border-slate-800">
+            <div class="flex items-center space-x-3">
+                <a href="/" class="text-2xl font-extrabold text-blue-500 tracking-wider">AstroTime<span class="text-white">AI</span></a>
+            </div>
+            <nav class="hidden md:flex space-x-6 text-sm font-medium text-slate-300">
+                <a href="/" class="text-blue-400 hover:text-white transition font-bold">Home</a>
+                <a href="/analysis" class="hover:text-white transition">Analysis Matrix</a>
+                <a href="/learn" class="hover:text-white transition">Learn & Simulator</a>
+                <a href="/ai-assistant" class="hover:text-white transition">AI Co-Pilot</a>
+                <a href="/about" class="hover:text-white transition">About</a>
+            </nav>
+            <div class="flex items-center space-x-3 text-xs font-medium">
+                {% if current_user.is_authenticated %}
+                    <span class="text-slate-400 hidden sm:inline">User: <strong class="text-blue-400">{{ current_user.username }}</strong></span>
+                    <a href="/logout" class="bg-red-900/40 border border-red-500/30 text-red-300 hover:bg-red-900/60 px-3.5 py-1.5 rounded-lg transition">Logout</a>
+                {% else %}
+                    <a href="/login" class="bg-slate-800 hover:bg-slate-700 px-3.5 py-1.5 rounded-lg border border-slate-700 font-semibold text-slate-200 transition">Sign In</a>
+                    <a href="/register" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-1.5 rounded-lg transition shadow-md shadow-blue-500/20">Register</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="container mx-auto px-4 py-8 flex-grow space-y-12">
+            
+            <!-- Hero Section -->
+            <div class="text-center max-w-4xl mx-auto space-y-6 pt-6">
+                <div class="inline-flex items-center space-x-2 bg-blue-500/10 border border-blue-500/30 px-4 py-1.5 rounded-full text-xs text-blue-400 font-mono">
+                    <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                    <span>High-Precision Astronomical Time & Telemetry Hub</span>
+                </div>
+
+                <h1 class="text-4xl sm:text-6xl font-black tracking-tight leading-tight">
+                    Research-Grade Time Engine & <br>
+                    <span class="bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
+                        Celestial Analytics Matrix
+                    </span>
                 </h1>
-                <p class="text-slate-400 text-md md:text-lg mb-8 max-w-2xl mx-auto">
-                    Bridge the gap between temporal astronomical measurements and geographic coordinates through interactive web visualisations and real-time computation.
+
+                <p class="text-slate-300 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
+                    Compute exact Local Sidereal Time (LST), Apparent Solar Time, UT1/UTC ($\Delta T$), and horizon coordinates powered by rigorous ephemeris datasets.
                 </p>
-                <a href="/analysis" class="inline-block bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-lg shadow-lg shadow-blue-500/20 transition-all transform hover:-translate-y-0.5">
-                    Start Analysis
-                </a>
+
+                <div class="flex flex-wrap justify-center gap-4 pt-2">
+                    <a href="/analysis" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3.5 rounded-xl text-sm transition duration-200 shadow-lg shadow-blue-500/30 flex items-center space-x-2">
+                        <span>Launch Analysis Matrix</span>
+                        <span>→</span>
+                    </a>
+                    <a href="/ai-assistant" class="glass-card hover:bg-slate-800/80 text-slate-200 font-bold px-8 py-3.5 rounded-xl text-sm transition duration-200 border border-slate-700 flex items-center space-x-2">
+                        <span>Consult AI Co-Pilot</span>
+                    </a>
+                </div>
             </div>
-        </section>
 
-        <!-- Key System Features Grid -->
-        <section class="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8 border-t border-slate-800/60">
-            <h2 class="text-2xl font-bold text-center text-white mb-12">Key System Features</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                
-                <div class="bg-slate-950/50 border border-slate-800 p-6 rounded-xl text-center hover:border-blue-500/50 transition-all">
-                    <div class="text-4xl mb-4">🌍</div>
-                    <h3 class="font-bold text-white mb-2">Interactive Map</h3>
-                    <p class="text-xs text-slate-400">Click to automatically extract real-world coordinates.</p>
+            <!-- Analysis Matrix Launch Cards Section -->
+            <div class="space-y-4">
+                <div class="border-b border-slate-800 pb-2 flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
+                        <span class="text-blue-500">📊</span>
+                        <span>Analysis Matrix Modules</span>
+                    </h2>
+                    <span class="text-xs text-slate-400 font-mono">Direct Launch Controls</span>
                 </div>
 
-                <div class="bg-slate-950/50 border border-slate-800 p-6 rounded-xl text-center hover:border-blue-500/50 transition-all">
-                    <div class="text-4xl mb-4">🕒</div>
-                    <h3 class="font-bold text-white mb-2">Solar & Sidereal Time</h3>
-                    <p class="text-xs text-slate-400">Instant computation of LST, Equation of Time, and Julian Date.</p>
-                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    <a href="/analysis?module=lst" class="glass-card glass-card-hover p-6 rounded-2xl space-y-4 block group">
+                        <div class="flex justify-between items-start">
+                            <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 text-xl group-hover:bg-purple-500/20 transition">
+                                ⏱️
+                            </div>
+                            <span class="text-[10px] font-mono bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">Sub-Second</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-white group-hover:text-purple-400 transition">Local Sidereal Engine</h3>
+                            <p class="text-slate-400 text-xs mt-2 leading-relaxed">
+                                Calculate Greenwich Apparent Sidereal Time (GAST) and Local Sidereal Time (LST) with exact Earth Orientation parameters.
+                            </p>
+                        </div>
+                        <div class="text-xs text-purple-400 font-semibold flex items-center space-x-1 pt-2">
+                            <span>Open LST Matrix</span>
+                            <span>→</span>
+                        </div>
+                    </a>
 
-                <div class="bg-slate-950/50 border border-slate-800 p-6 rounded-xl text-center hover:border-blue-500/50 transition-all">
-                    <div class="text-4xl mb-4">📊</div>
-                    <h3 class="font-bold text-white mb-2">Data Analytics</h3>
-                    <p class="text-xs text-slate-400">Interactive charts visualizing temporal astronomical drift.</p>
-                </div>
+                    <a href="/analysis?module=solar" class="glass-card glass-card-hover p-6 rounded-2xl space-y-4 block group">
+                        <div class="flex justify-between items-start">
+                            <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-xl group-hover:bg-amber-500/20 transition">
+                                ☀️
+                            </div>
+                            <span class="text-[10px] font-mono bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">Equation of Time</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-white group-hover:text-amber-400 transition">Solar Time & EoT Matrix</h3>
+                            <p class="text-slate-400 text-xs mt-2 leading-relaxed">
+                                Compute Apparent Solar Time versus Mean Solar Time using the solar hour angle and precise Keplerian transformations.
+                            </p>
+                        </div>
+                        <div class="text-xs text-amber-400 font-semibold flex items-center space-x-1 pt-2">
+                            <span>Open Solar Matrix</span>
+                            <span>→</span>
+                        </div>
+                    </a>
 
-                <div class="bg-slate-950/50 border border-slate-800 p-6 rounded-xl text-center hover:border-blue-500/50 transition-all">
-                    <div class="text-4xl mb-4">🤖</div>
-                    <h3 class="font-bold text-white mb-2">Groq AI Copilot</h3>
-                    <p class="text-xs text-slate-400">Ask questions and resolve geodetic field calculations.</p>
-                </div>
+                    <a href="/analysis?module=ephemeris" class="glass-card glass-card-hover p-6 rounded-2xl space-y-4 block group">
+                        <div class="flex justify-between items-start">
+                            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl group-hover:bg-emerald-500/20 transition">
+                                🛰️
+                            </div>
+                            <span class="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">Horizon Telemetry</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-white group-hover:text-emerald-400 transition">Ephemeris & Coordinates</h3>
+                            <p class="text-slate-400 text-xs mt-2 leading-relaxed">
+                                Transform celestial coordinates into local Altitude-Azimuth frames for the Sun, Moon, and major planetary bodies.
+                            </p>
+                        </div>
+                        <div class="text-xs text-emerald-400 font-semibold flex items-center space-x-1 pt-2">
+                            <span>Open Horizon Telemetry</span>
+                            <span>→</span>
+                        </div>
+                    </a>
 
-                <div class="bg-slate-950/50 border border-slate-800 p-6 rounded-xl text-center hover:border-blue-500/50 transition-all">
-                    <div class="text-4xl mb-4">🔐</div>
-                    <h3 class="font-bold text-white mb-2">User System</h3>
-                    <p class="text-xs text-slate-400">Secure user registration and history storage.</p>
                 </div>
-
             </div>
-        </section>
-    </main>
 
-    <!-- Footer -->
-    <footer class="border-t border-slate-800 bg-slate-950 py-6 text-center text-xs text-slate-500">
-        <p>&copy; 2026 AstroTime AI Project. Built for Geomatics & Field Astronomy Applications.</p>
-    </footer>
+            <!-- AI Co-Pilot Quick Launch Section -->
+            <div class="space-y-4">
+                <div class="border-b border-slate-800 pb-2 flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
+                        <span class="text-blue-400">🤖</span>
+                        <span>AI Assistant Quick Consult</span>
+                    </h2>
+                    <span class="text-xs text-slate-400 font-mono">Domain AI Shortcuts</span>
+                </div>
 
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    <a href="/ai-assistant?prompt=Explain%20how%20Local%20Sidereal%20Time%20is%20derived%20from%20GMST" class="glass-card glass-card-hover p-6 rounded-2xl space-y-3 block">
+                        <div class="text-blue-400 font-mono text-xs font-bold uppercase">Transformation Math</div>
+                        <h3 class="text-base font-bold text-white">GMST to LST Derivation</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            Ask the AI to step through how Earth's rotation angle and longitude offset determine Local Sidereal Time.
+                        </p>
+                    </a>
+
+                    <a href="/ai-assistant?prompt=What%20is%20Delta%20T%20and%20why%20is%20it%20needed%20for%20UT1" class="glass-card glass-card-hover p-6 rounded-2xl space-y-3 block">
+                        <div class="text-purple-400 font-mono text-xs font-bold uppercase">Time Standards</div>
+                        <h3 class="text-base font-bold text-white">$\Delta T$ & Earth Rotation Delay</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            Explore the difference between uniform atomic time (TAI/UTC) and rotational Earth time (UT1).
+                        </p>
+                    </a>
+
+                    <a href="/ai-assistant?prompt=How%20does%20Equation%20of%20Time%20affect%20Apparent%20Solar%20Time" class="glass-card glass-card-hover p-6 rounded-2xl space-y-3 block">
+                        <div class="text-emerald-400 font-mono text-xs font-bold uppercase">Solar Mechanics</div>
+                        <h3 class="text-base font-bold text-white">Equation of Time (EoT)</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            Understand how orbital eccentricity and obliquity alter daily sundial time relative to mean clock time.
+                        </p>
+                    </a>
+
+                </div>
+            </div>
+
+            <!-- Time System Primer Section -->
+            <div class="glass-card p-8 rounded-2xl border border-slate-700/60 space-y-6">
+                <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-slate-200 uppercase tracking-wider">Time Systems & Astronomical Frameworks</h2>
+                    <span class="text-xs font-mono text-blue-400">Theoretical Foundations</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-xs">
+                    
+                    <div class="space-y-2">
+                        <h3 class="font-bold text-white text-sm text-blue-300">1. Universal & Rotational Time (UTC / UT1)</h3>
+                        <p class="text-slate-400 leading-relaxed">
+                            Coordinated Universal Time (UTC) is maintained by atomic clocks. UT1 reflects Earth's actual physical rotation relative to distant celestial bodies. The difference, $\Delta T = \text{TT} - \text{UT1}$, accounts for Earth's rotational decelerations.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h3 class="font-bold text-white text-sm text-purple-300">2. Sidereal Time Frame (GMST / LST)</h3>
+                        <p class="text-slate-400 leading-relaxed">
+                            Sidereal time measures Earth's rotation relative to the Vernal Equinox rather than the Sun. Local Sidereal Time (LST) equals Greenwich Mean Sidereal Time adjusted for the observer’s specific geographic longitude ($\lambda$).
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h3 class="font-bold text-white text-sm text-amber-300">3. Apparent vs. Mean Solar Time</h3>
+                        <p class="text-slate-400 leading-relaxed">
+                            Apparent Solar Time is the direct reading of a sundial based on the Sun's hour angle. Mean Solar Time averages out variations caused by Earth's elliptical orbit and axial tilt through the Equation of Time (EoT).
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Data Integrity & Standards Panel -->
+            <div class="glass-card p-6 rounded-2xl border border-blue-500/20 space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
+                        <span class="text-emerald-400">🛡️</span>
+                        <span>Data Integrity & Accuracy Assurance</span>
+                    </h3>
+                    <span class="text-[10px] font-mono bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30">Verified Standards</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                    <div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+                        <div class="text-slate-400 font-mono text-[10px] uppercase">Ephemeris Base</div>
+                        <div class="text-white font-bold mt-1">JPL DE440 / DE441</div>
+                        <div class="text-slate-500 text-[11px] mt-1">Full planetary position accuracy</div>
+                    </div>
+
+                    <div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+                        <div class="text-slate-400 font-mono text-[10px] uppercase">Precession Model</div>
+                        <div class="text-white font-bold mt-1">IAU 2006 / 2000A</div>
+                        <div class="text-slate-500 text-[11px] mt-1">Standard nutation routines</div>
+                    </div>
+
+                    <div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+                        <div class="text-slate-400 font-mono text-[10px] uppercase">Earth Orientation</div>
+                        <div class="text-white font-bold mt-1">IERS Bulletin A / B</div>
+                        <div class="text-slate-500 text-[11px] mt-1">Real-time $\Delta T$ corrections</div>
+                    </div>
+
+                    <div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+                        <div class="text-slate-400 font-mono text-[10px] uppercase">Coordinate System</div>
+                        <div class="text-white font-bold mt-1">ICRF / WGS 84</div>
+                        <div class="text-slate-500 text-[11px] mt-1">Geodetic observer reference</div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="glass-card py-4 text-center text-xs text-slate-500 border-t border-slate-800">
+            AstroTime AI Platform &copy; 2026. Geomatics Academic Project.
+        </footer>
+    </div>
+
+    <!-- Vanta 3D Globe Initialization Script -->
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            if (typeof VANTA !== 'undefined') {
+                VANTA.GLOBE({
+                    el: "#vanta-canvas",
+                    mouseControls: true,
+                    touchControls: true,
+                    gyroControls: false,
+                    minHeight: 200.00,
+                    minWidth: 200.00,
+                    scale: 1.00,
+                    scaleMobile: 1.00,
+                    color: 0x3b82f6,
+                    color2: 0x60a5fa,
+                    backgroundColor: 0x030712,
+                    size: 0.90
+                });
+            }
+        });
+    </script>
 </body>
 </html>

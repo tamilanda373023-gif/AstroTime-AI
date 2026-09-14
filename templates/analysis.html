@@ -1,231 +1,478 @@
-{% extends 'base.html' %}
-{% block content %}
-<div class="max-w-7xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
-    <h1 class="text-3xl font-extrabold text-white mb-2">Astronomical & Spatial Analysis Console</h1>
-    <p class="text-slate-400 mb-8">Search for any destination or click directly on the map to fetch live geomatics, weather, and astronomical time data.</p>
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Matrix - AstroTime AI</title>
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        <!-- Left Column: Input Form -->
-        <div class="lg:col-span-5 bg-slate-950 p-6 rounded-xl border border-slate-800 shadow-xl flex flex-col justify-between">
-            <div>
-                <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                    <span>📍</span> Location Parameters
-                </h2>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.globe.min.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
+    <!-- HTML2PDF Library for exporting PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        html, body {
+            margin: 0; padding: 0; width: 100%; min-height: 100vh;
+            overflow-x: hidden; background-color: #030712;
+        }
+        #vanta-canvas {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0; pointer-events: none;
+        }
+        .ui-overlay { position: relative; z-index: 10; }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .leaflet-control-layers {
+            background: rgba(15, 23, 42, 0.9) !important;
+            color: #f8fafc !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 12px !important;
+        }
+        .leaflet-control-layers-toggle { filter: invert(1); }
+    </style>
+</head>
+<body class="text-white font-sans antialiased min-h-screen flex flex-col justify-between">
+
+    <div id="vanta-canvas"></div>
+
+    <div class="ui-overlay min-h-screen flex flex-col justify-between">
+        <header class="glass-card sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b border-slate-800">
+            <div class="flex items-center space-x-3">
+                <a href="/" class="text-2xl font-extrabold text-blue-500 tracking-wider">AstroTime<span class="text-white">AI</span></a>
+                <span class="text-xs font-mono bg-blue-500/10 border border-blue-500/30 text-blue-400 px-2 py-0.5 rounded-full">GIS Suite v2.6</span>
+            </div>
+            <nav class="hidden md:flex space-x-6 text-sm font-medium text-slate-300">
+                <a href="/" class="hover:text-white transition">Home</a>
+                <a href="/analysis" class="text-blue-400 font-bold transition">Analysis Matrix</a>
+                <a href="/learn" class="hover:text-white transition">Learn & Simulator</a>
+                <a href="/ai-assistant" class="hover:text-white transition">AI Co-Pilot</a>
+                <a href="/about" class="hover:text-white transition">About</a>
+            </nav>
+            <div class="flex items-center space-x-3">
+                <button onclick="toggleHistoryDrawer()" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-2 rounded-lg font-semibold border border-slate-700 transition flex items-center space-x-1">
+                    <span>📜 History</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 py-8 flex-grow space-y-8">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 
-                <div id="location-display" class="mb-5 p-3 bg-slate-900 border border-slate-800 rounded-lg text-sm text-blue-400 font-semibold flex items-center gap-2">
-                    <span>🌐</span> <span id="location-name">Select a point on the map or search above</span>
+                <div class="lg:col-span-8 flex flex-col space-y-4">
+                    <div class="glass-card p-4 rounded-2xl border border-slate-700/60 space-y-4">
+                        
+                        <!-- Search Bar with Live Autocomplete Suggestions -->
+                        <div class="relative">
+                            <input type="text" id="address-input" oninput="debounceSearch()" placeholder="Type location address or observatory..." 
+                                   class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 font-mono">
+                            <div id="autocomplete-results" class="hidden absolute left-0 right-0 top-12 bg-slate-900/95 border border-slate-700 rounded-xl z-50 max-h-60 overflow-y-auto divide-y divide-slate-800 shadow-2xl"></div>
+                        </div>
+
+                        <div id="gis-map" class="w-full h-[450px] rounded-xl border border-slate-800 shadow-2xl relative z-10"></div>
+                        
+                        <div id="polygon-stats" class="hidden bg-slate-900/90 border border-emerald-500/30 p-3 rounded-xl text-xs font-mono flex justify-between items-center text-emerald-400">
+                            <div><span>Area: </span><strong id="stat-area">0.00</strong> km²</div>
+                            <div><span>Perimeter: </span><strong id="stat-perimeter">0.00</strong> km</div>
+                            <div class="text-slate-400">Geometry Active</div>
+                        </div>
+                    </div>
                 </div>
 
-                <form id="analysis-form" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Latitude</label>
-                        <input type="number" step="any" id="latitude" name="latitude" required
-                            class="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-white rounded-lg px-4 py-2 outline-none transition-all text-sm"
-                            placeholder="e.g. 4.2105">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Longitude</label>
-                        <input type="number" step="any" id="longitude" name="longitude" required
-                            class="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-white rounded-lg px-4 py-2 outline-none transition-all text-sm"
-                            placeholder="e.g. 101.9758">
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Date</label>
-                            <input type="date" id="date" name="date" required
-                                class="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-white rounded-lg px-3 py-2 outline-none transition-all text-xs">
+                <div class="lg:col-span-4 flex flex-col">
+                    <div class="glass-card p-6 rounded-2xl border border-slate-700/60 flex-grow space-y-6">
+                        <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+                            <h2 class="text-lg font-bold text-white tracking-wide">Observatory Inputs</h2>
+                            <span class="text-xs font-mono text-emerald-400">Auto-Synced</span>
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Time</label>
-                            <input type="time" id="time" name="time" required
-                                class="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-white rounded-lg px-3 py-2 outline-none transition-all text-xs">
-                        </div>
-                    </div>
 
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Time Zone (UTC Offset)</label>
-                        <select id="timezone" name="timezone" required
-                            class="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-white rounded-lg px-4 py-2 outline-none transition-all text-sm">
-                            <option value="0">UTC +00:00 (Greenwich)</option>
-                            <option value="8" selected>UTC +08:00 (Malaysia/Singapore)</option>
-                            <option value="-5">UTC -05:00 (EST)</option>
-                            <option value="1">UTC +01:00 (CET)</option>
-                            <option value="9">UTC +09:00 (Tokyo/Japan)</option>
-                        </select>
-                    </div>
+                        <form method="POST" action="/analysis" id="astro-form" class="space-y-4">
+                            <div>
+                                <label class="block text-slate-400 text-xs mb-1 font-mono">Latitude (°N/S)</label>
+                                <input type="number" step="any" id="lat-input" name="latitude" required 
+                                       value="{{ inputs.latitude if inputs else '3.1390' }}"
+                                       class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 font-mono">
+                            </div>
 
-                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg transition-all transform hover:scale-[1.01] shadow-lg shadow-blue-500/10 mt-4 text-sm">
-                        Calculate Astronomical Times
-                    </button>
-                </form>
+                            <div>
+                                <label class="block text-slate-400 text-xs mb-1 font-mono">Longitude (°E/W)</label>
+                                <input type="number" step="any" id="lng-input" name="longitude" required 
+                                       value="{{ inputs.longitude if inputs else '101.6869' }}"
+                                       class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 font-mono">
+                            </div>
+
+                            <div>
+                                <label class="block text-slate-400 text-xs mb-1 font-mono">Observation Date</label>
+                                <input type="date" name="date" required 
+                                       value="{{ inputs.date if inputs else '2026-09-14' }}"
+                                       class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 font-mono">
+                            </div>
+
+                            <div>
+                                <label class="block text-slate-400 text-xs mb-1 font-mono">Local Standard Time</label>
+                                <input type="time" name="time" required 
+                                       value="{{ inputs.time if inputs else '14:25' }}"
+                                       class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 font-mono">
+                            </div>
+
+                            <div>
+                                <label class="block text-slate-400 text-xs mb-1 font-mono">Timezone Offset (UTC)</label>
+                                <input type="number" step="any" name="timezone" required 
+                                       value="{{ inputs.timezone if inputs else '8.0' }}"
+                                       class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 font-mono">
+                            </div>
+
+                            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl transition duration-200 shadow-lg shadow-emerald-600/20 text-sm">
+                                Compute Time Systems
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
             </div>
+
+            {% if results %}
+            <div id="results-container" class="glass-card p-6 rounded-2xl border border-slate-700/60 space-y-4">
+                <div class="border-b border-slate-800 pb-3 flex flex-wrap justify-between items-center gap-3">
+                    <div>
+                        <h2 class="text-lg font-bold text-white tracking-wide">Theoretical Astronomical Time Systems Matrix</h2>
+                        <span class="text-xs font-mono text-blue-400">Epoch synchronized</span>
+                    </div>
+
+                    <!-- Convert / Export File Actions -->
+                    <div class="flex items-center space-x-2">
+                        <button onclick="exportCSV()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1">
+                            <span>📥 CSV</span>
+                        </button>
+                        <button onclick="exportJSON()" class="bg-purple-600 hover:bg-purple-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1">
+                            <span>📦 JSON</span>
+                        </button>
+                        <button onclick="exportPDF()" class="bg-red-600 hover:bg-red-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1">
+                            <span>📄 PDF</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table id="matrix-table" class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-900/80 text-slate-400 font-mono border-b border-slate-800">
+                            <tr>
+                                <th class="py-3.5 px-4">TIME SYSTEM</th>
+                                <th class="py-3.5 px-4">COMPUTED VALUE</th>
+                                <th class="py-3.5 px-4">PRIMARY GEODETIC APPLICATION</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800 font-mono">
+                            <tr>
+                                <td class="py-3.5 px-4 font-bold text-white">Julian Date (JD)</td>
+                                <td class="py-3.5 px-4 text-emerald-400 font-bold text-sm">{{ results.julian_date }}</td>
+                                <td class="py-3.5 px-4 text-slate-400">Astronomical Epoch & Orbit Calculations</td>
+                            </tr>
+                            <tr>
+                                <td class="py-3.5 px-4 font-bold text-white">Greenwich Mean Sidereal Time (GMST)</td>
+                                <td class="py-3.5 px-4 text-purple-400 font-bold text-sm">{{ results.gmst }}</td>
+                                <td class="py-3.5 px-4 text-slate-400">Earth Orientation & Celestial Coordinate Mapping</td>
+                            </tr>
+                            <tr>
+                                <td class="py-3.5 px-4 font-bold text-white">Local Mean Sidereal Time (LMST)</td>
+                                <td class="py-3.5 px-4 text-blue-400 font-bold text-sm">{{ results.lmst }}</td>
+                                <td class="py-3.5 px-4 text-slate-400">Local Meridian Sidereal Alignment</td>
+                            </tr>
+                            <tr>
+                                <td class="py-3.5 px-4 font-bold text-white">Equation of Time (EoT)</td>
+                                <td class="py-3.5 px-4 text-amber-400 font-bold text-sm">{{ results.eot_minutes }} minutes</td>
+                                <td class="py-3.5 px-4 text-slate-400">Solar Oscillation & True Solar Time Correction</td>
+                            </tr>
+                            <tr>
+                                <td class="py-3.5 px-4 font-bold text-white">Local Apparent Sidereal Time (LAST)</td>
+                                <td class="py-3.5 px-4 text-cyan-400 font-bold text-sm">{{ results.last_time }}</td>
+                                <td class="py-3.5 px-4 text-slate-400">Apparent Celestial Right Ascension Reference</td>
+                            </tr>
+                            <tr>
+                                <td class="py-3.5 px-4 font-bold text-white">Apparent Solar Time</td>
+                                <td class="py-3.5 px-4 text-amber-300 font-bold text-sm">{{ results.solar_time }}</td>
+                                <td class="py-3.5 px-4 text-slate-400">Sundial Time / Local Solar Meridian Alignment</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </main>
+
+        <div id="history-drawer" class="fixed top-0 right-0 w-80 h-full bg-slate-900/95 border-l border-slate-800 backdrop-blur-xl z-50 transform translate-x-full transition-transform duration-300 p-6 flex flex-col space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-white text-sm">Calculation History</h3>
+                <button onclick="toggleHistoryDrawer()" class="text-slate-400 hover:text-white font-bold">&times;</button>
+            </div>
+            <div id="history-list" class="flex-grow space-y-3 overflow-y-auto text-xs font-mono"></div>
+            <button onclick="clearHistory()" class="bg-red-900/40 border border-red-500/30 text-red-400 hover:bg-red-900/60 py-2 rounded-lg text-xs font-bold transition">Clear History</button>
         </div>
 
-        <!-- Right Column: Interactive Map & Live Results -->
-        <div class="lg:col-span-7 flex flex-col gap-6">
-            <div id="map" class="w-full h-[400px] rounded-xl border border-slate-800 shadow-xl overflow-hidden z-10"></div>
-            
-            <div id="results-panel" class="hidden bg-slate-950 p-6 rounded-xl border border-blue-900/50 shadow-2xl space-y-6">
-                
-                <!-- Environmental Data -->
-                <div>
-                    <h3 class="text-md font-bold text-slate-300 mb-3 flex items-center gap-2">
-                        <span>🌤️</span> Environmental & Location Insights
-                    </h3>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
-                            <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Temperature</div>
-                            <div id="env-temp" class="text-sm font-bold text-amber-400">-- °C</div>
-                        </div>
-                        <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
-                            <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Relative Humidity</div>
-                            <div id="env-humidity" class="text-sm font-bold text-cyan-400">-- %</div>
-                        </div>
-                        <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
-                            <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Wind Speed</div>
-                            <div id="env-wind" class="text-sm font-bold text-emerald-400">-- km/h</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Calculated Astronomical Times -->
-                <div>
-                    <h3 class="text-md font-bold text-blue-400 mb-3 flex items-center gap-2">
-                        <span>📡</span> Computed Astronomical Times
-                    </h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 text-center">
-                            <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Julian Date</div>
-                            <div id="res-jd" class="text-xs font-bold text-white">--</div>
-                        </div>
-                        <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 text-center">
-                            <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Equation of Time</div>
-                            <div id="res-eot" class="text-xs font-bold text-white">--</div>
-                        </div>
-                        <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 text-center">
-                            <div class="text-[10px] text-slate-500 uppercase font-bold mb-1 font-semibold text-amber-500">Solar Time</div>
-                            <div id="res-solar" class="text-base font-extrabold text-amber-400">--</div>
-                        </div>
-                        <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 text-center">
-                            <div class="text-[10px] text-slate-500 uppercase font-bold mb-1 font-semibold text-blue-500">Sidereal Time</div>
-                            <div id="res-sidereal" class="text-base font-extrabold text-blue-400">--</div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
+        <footer class="glass-card py-4 text-center text-xs text-slate-500 border-t border-slate-800">
+            AstroTime AI Platform &copy; 2026. Geomatics Academic Project.
+        </footer>
     </div>
-</div>
 
-<script>
-    const map = L.map('map').setView([4.2105, 101.9758], 6);
+    <script>
+        let map, marker, drawnItems, searchTimeout;
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-    }).addTo(map);
+        window.addEventListener('DOMContentLoaded', () => {
+            if (typeof VANTA !== 'undefined') {
+                VANTA.GLOBE({
+                    el: "#vanta-canvas",
+                    mouseControls: true, touchControls: true, gyroControls: false,
+                    minHeight: 200.00, minWidth: 200.00, scale: 1.00, scaleMobile: 1.00,
+                    color: 0x3b82f6, color2: 0x60a5fa, backgroundColor: 0x030712, size: 0.90
+                });
+            }
 
-    let marker;
+            const latDefault = parseFloat(document.getElementById('lat-input').value) || 3.1390;
+            const lngDefault = parseFloat(document.getElementById('lng-input').value) || 101.6869;
 
-    if (typeof L.Control.Geocoder !== 'undefined') {
-        L.Control.geocoder({
-            defaultMarkGeocode: false,
-            placeholder: "Search location...",
-            errorMessage: "Location not found."
-        })
-        .on('markgeocode', function(e) {
-            const center = e.geocode.center;
-            map.setView(center, 12);
-            processSelectedLocation(center.lat.toFixed(6), center.lng.toFixed(6), e.geocode.name, center);
-        })
-        .addTo(map);
-    }
-
-    map.on('click', function(e) {
-        const lat = e.latlng.lat.toFixed(6);
-        const lng = e.latlng.lng.toFixed(6);
-
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
-            .then(res => res.json())
-            .then(data => {
-                const placeName = data.display_name || `Location (${lat}, ${lng})`;
-                processSelectedLocation(lat, lng, placeName, e.latlng);
-            })
-            .catch(() => {
-                processSelectedLocation(lat, lng, `Coordinates (${lat}, ${lng})`, e.latlng);
+            const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             });
-    });
 
-    function processSelectedLocation(lat, lng, locationName, latlngObj) {
-        document.getElementById('latitude').value = lat;
-        document.getElementById('longitude').value = lng;
-        document.getElementById('location-name').innerText = locationName;
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 18,
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            });
 
-        if (marker) {
-            marker.setLatLng(latlngObj);
-        } else {
-            marker = L.marker(latlngObj).addTo(map);
+            const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                maxZoom: 17,
+                attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
+            });
+
+            map = L.map('gis-map', {
+                center: [latDefault, lngDefault],
+                zoom: 12,
+                layers: [osmLayer]
+            });
+
+            L.control.layers({
+                "Standard OpenStreetMap": osmLayer,
+                "Satellite Imagery": satelliteLayer,
+                "Topographic": topoLayer
+            }).addTo(map);
+
+            marker = L.marker([latDefault, lngDefault], { draggable: true }).addTo(map);
+
+            marker.on('dragend', function (e) {
+                const coord = marker.getLatLng();
+                updateInputs(coord.lat, coord.lng);
+            });
+
+            map.on('click', function(e) {
+                marker.setLatLng(e.latlng);
+                updateInputs(e.latlng.lat, e.latlng.lng);
+            });
+
+            drawnItems = new L.FeatureGroup();
+            map.addLayer(drawnItems);
+
+            const drawControl = new L.Control.Draw({
+                edit: { featureGroup: drawnItems },
+                draw: {
+                    polygon: { allowIntersection: false, showArea: true },
+                    polyline: true, rectangle: true, circle: false, circlemarker: false, marker: false
+                }
+            });
+            map.addControl(drawControl);
+
+            map.on(L.Draw.Event.CREATED, function (e) {
+                const layer = e.layer;
+                drawnItems.addLayer(layer);
+
+                if (e.layerType === 'polygon' || e.layerType === 'rectangle') {
+                    const geojson = layer.toGeoJSON();
+                    const area = turf.area(geojson) / 1000000;
+                    const length = turf.length(geojson, {units: 'kilometers'});
+
+                    document.getElementById('polygon-stats').classList.remove('hidden');
+                    document.getElementById('stat-area').innerText = area.toFixed(4);
+                    document.getElementById('stat-perimeter').innerText = length.toFixed(4);
+                }
+            });
+
+            renderHistory();
+        });
+
+        function updateInputs(lat, lng) {
+            document.getElementById('lat-input').value = lat.toFixed(6);
+            document.getElementById('lng-input').value = lng.toFixed(6);
         }
 
-        marker.bindPopup(`<b>${locationName}</b><br>Lat: ${lat}<br>Lng: ${lng}`).openPopup();
+        function debounceSearch() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(fetchAddressSuggestions, 350);
+        }
 
-        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&hourly=relativehumidity_2m`)
-            .then(res => res.json())
-            .then(wData => {
-                if (wData.current_weather) {
-                    document.getElementById('env-temp').innerText = `${wData.current_weather.temperature} °C`;
-                    document.getElementById('env-wind').innerText = `${wData.current_weather.windspeed} km/h`;
-                    if (wData.hourly && wData.hourly.relativehumidity_2m) {
-                        document.getElementById('env-humidity').innerText = `${wData.hourly.relativehumidity_2m[0]} %`;
-                    }
-                }
-            })
-            .catch(err => console.error("Weather API error:", err));
-    }
+        function fetchAddressSuggestions() {
+            const query = document.getElementById('address-input').value.trim();
+            const resultsContainer = document.getElementById('autocomplete-results');
 
-    window.addEventListener('load', () => {
-        const now = new Date();
-        document.getElementById('date').value = now.toISOString().substring(0, 10);
-        document.getElementById('time').value = now.toTimeString().substring(0, 5);
-    });
-
-    document.getElementById('analysis-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const formData = {
-            latitude: document.getElementById('latitude').value,
-            longitude: document.getElementById('longitude').value,
-            date: document.getElementById('date').value,
-            time: document.getElementById('time').value,
-            timezone: document.getElementById('timezone').value
-        };
-
-        fetch('/api/calculate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if(data.success) {
-                document.getElementById('res-jd').innerText = data.results.julian_date;
-                document.getElementById('res-eot').innerText = data.results.eot + " min";
-                document.getElementById('res-solar').innerText = data.results.solar_time;
-                document.getElementById('res-sidereal').innerText = data.results.sidereal_time;
-                
-                document.getElementById('results-panel').classList.remove('hidden');
-            } else {
-                alert("Calculation error: " + data.error);
+            if (query.length < 3) {
+                resultsContainer.classList.add('hidden');
+                return;
             }
-        })
-        .catch(err => {
-            console.error("API error:", err);
-            alert("Connection error fetching astronomical metrics.");
-        });
-    });
-</script>
-{% endblock %}
+
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`)
+                .then(res => res.json())
+                .then(data => {
+                    resultsContainer.innerHTML = '';
+                    if (data && data.length > 0) {
+                        data.forEach(item => {
+                            const option = document.createElement('div');
+                            option.className = 'px-4 py-2.5 hover:bg-blue-600/30 text-xs text-slate-200 cursor-pointer font-mono transition';
+                            option.innerText = item.display_name;
+                            option.onclick = () => {
+                                const lat = parseFloat(item.lat);
+                                const lon = parseFloat(item.lon);
+                                map.setView([lat, lon], 14);
+                                marker.setLatLng([lat, lon]);
+                                updateInputs(lat, lon);
+                                document.getElementById('address-input').value = item.display_name;
+                                resultsContainer.classList.add('hidden');
+                            };
+                            resultsContainer.appendChild(option);
+                        });
+                        resultsContainer.classList.remove('hidden');
+                    } else {
+                        resultsContainer.classList.add('hidden');
+                    }
+                })
+                .catch(() => resultsContainer.classList.add('hidden'));
+        }
+
+        function toggleHistoryDrawer() {
+            document.getElementById('history-drawer').classList.toggle('translate-x-full');
+        }
+
+        {% if results %}
+        (function saveHistory() {
+            const history = JSON.parse(localStorage.getItem('astro_history') || '[]');
+            const record = {
+                lat: "{{ inputs.latitude }}",
+                lng: "{{ inputs.longitude }}",
+                jd: "{{ results.julian_date }}",
+                time: "{{ results.solar_time }}",
+                date: new Date().toLocaleTimeString()
+            };
+            history.unshift(record);
+            if(history.length > 10) history.pop();
+            localStorage.setItem('astro_history', JSON.stringify(history));
+        })();
+
+        // File Conversion & Export Functions
+        function exportCSV() {
+            const data = [
+                ["Time System", "Computed Value", "Primary Geodetic Application"],
+                ["Julian Date (JD)", "{{ results.julian_date }}", "Astronomical Epoch & Orbit Calculations"],
+                ["Greenwich Mean Sidereal Time (GMST)", "{{ results.gmst }}", "Earth Orientation & Celestial Coordinate Mapping"],
+                ["Local Mean Sidereal Time (LMST)", "{{ results.lmst }}", "Local Meridian Sidereal Alignment"],
+                ["Equation of Time (EoT)", "{{ results.eot_minutes }} minutes", "Solar Oscillation & True Solar Time Correction"],
+                ["Local Apparent Sidereal Time (LAST)", "{{ results.last_time }}", "Apparent Celestial Right Ascension Reference"],
+                ["Apparent Solar Time", "{{ results.solar_time }}", "Sundial Time / Local Solar Meridian Alignment"]
+            ];
+
+            let csvContent = "data:text/csv;charset=utf-8," + data.map(e => e.map(cell => `"${cell}"`).join(",")).join("\n");
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "astrotime_analysis.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportJSON() {
+            const exportData = {
+                inputs: {
+                    latitude: "{{ inputs.latitude }}",
+                    longitude: "{{ inputs.longitude }}",
+                    date: "{{ inputs.date }}",
+                    time: "{{ inputs.time }}",
+                    timezone: "{{ inputs.timezone }}"
+                },
+                results: {
+                    julian_date: "{{ results.julian_date }}",
+                    gmst: "{{ results.gmst }}",
+                    lmst: "{{ results.lmst }}",
+                    eot_minutes: "{{ results.eot_minutes }}",
+                    last_time: "{{ results.last_time }}",
+                    solar_time: "{{ results.solar_time }}"
+                }
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "astrotime_analysis.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function exportPDF() {
+            const element = document.getElementById('results-container');
+            const opt = {
+                margin:       0.5,
+                filename:     'astrotime_analysis.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+        {% endif %}
+
+        function renderHistory() {
+            const history = JSON.parse(localStorage.getItem('astro_history') || '[]');
+            const container = document.getElementById('history-list');
+            container.innerHTML = '';
+
+            if(history.length === 0) {
+                container.innerHTML = `<div class="text-slate-500 py-4 text-center">No calculations stored.</div>`;
+                return;
+            }
+
+            history.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'bg-slate-800/80 p-3 rounded-lg border border-slate-700 space-y-1 hover:border-blue-500 cursor-pointer transition';
+                el.innerHTML = `
+                    <div class="text-white font-bold">${item.lat}°N, ${item.lng}°E</div>
+                    <div class="text-emerald-400">JD: ${item.jd}</div>
+                    <div class="text-slate-400 text-[10px]">Solar: ${item.time} (${item.date})</div>
+                `;
+                el.onclick = () => {
+                    document.getElementById('lat-input').value = item.lat;
+                    document.getElementById('lng-input').value = item.lng;
+                    map.setView([item.lat, item.lng], 13);
+                    marker.setLatLng([item.lat, item.lng]);
+                    toggleHistoryDrawer();
+                };
+                container.appendChild(el);
+            });
+        }
+
+        function clearHistory() {
+            localStorage.removeItem('astro_history');
+            renderHistory();
+        }
+    </script>
+</body>
+</html>

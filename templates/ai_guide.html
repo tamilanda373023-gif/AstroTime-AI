@@ -1,0 +1,94 @@
+<div id="ai-guide-container" class="fixed bottom-6 right-6 z-50 flex flex-col items-end space-y-3">
+    
+    <div id="ai-guide-dialog" class="glass-panel border-blue-500/50 p-5 rounded-2xl w-80 sm:w-96 shadow-2xl relative transition-all transform duration-300">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+            <div class="flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+                <span class="font-bold text-sm text-white">AstroTime Interactive Guide</span>
+            </div>
+            <button onclick="toggleGuideDialog()" class="text-slate-400 hover:text-white text-xs cursor-pointer">✕ Close</button>
+        </div>
+
+        <p id="tour-text" class="text-slate-300 text-xs sm:text-sm leading-relaxed mb-4">
+            Greetings! Welcome to AstroTime AI. Click 'Start Tour' to step through all features with real-time UI highlighting!
+        </p>
+
+        <div class="flex items-center justify-between pt-2 border-t border-slate-800/80">
+            <span id="tour-step-counter" class="text-[11px] font-mono text-slate-400">Step 1 of 6</span>
+            <div class="flex space-x-2">
+                <button id="tour-prev-btn" onclick="prevStep()" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition-colors hidden cursor-pointer">Back</button>
+                <button id="tour-next-btn" onclick="nextStep()" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-lg transition-colors shadow-lg shadow-blue-500/30 cursor-pointer">Start Tour 🚀</button>
+            </div>
+        </div>
+    </div>
+
+    <button onclick="toggleGuideDialog()" class="floating-avatar w-14 h-14 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-2xl shadow-xl hover:scale-105 border-2 border-blue-400/50 cursor-pointer">
+        🤖
+    </button>
+</div>
+
+<script>
+    let currentStep = 0;
+    const steps = [
+        { element: null, text: "Welcome to the Analysis Workspace! Let's walk through how to search locations, view address details, and calculate astronomical data." },
+        { element: "top-nav", text: "1. Navigation Menu: Quickly switch between Home, Analysis, AI Assistant, and Knowledge Base modules." },
+        { element: "map-container-box", text: "2. Interactive GIS Map & Search: Use the search bar in the top corner of the map to locate any place on Earth. You can also switch between Google Satellite, Roadmap, and Terrain layers!" },
+        { element: "address-bar", text: "3. Real-Time Address Display: Clicking anywhere on the map or selecting a search result automatically reveals the full place address right here." },
+        { element: "input-parameters-panel", text: "4. Input Parameters: The latitude and longitude from your map clicks will auto-populate here. Set your desired date, local time, and UTC offset." },
+        { element: "output-metrics-panel", text: "5. Astronomical Output: Press 'Run Calculation Engine' to instantly compute Julian Date, Local Solar Time, Local Sidereal Time, and Equation of Time." }
+    ];
+
+    function updateTourStep() {
+        const tourText = document.getElementById('tour-text');
+        const stepCounter = document.getElementById('tour-step-counter');
+        const prevBtn = document.getElementById('tour-prev-btn');
+        const nextBtn = document.getElementById('tour-next-btn');
+
+        // Clear active highlights
+        document.querySelectorAll('.spotlight-active').forEach(el => el.classList.remove('spotlight-active'));
+
+        if (!tourText || !stepCounter) return;
+
+        tourText.innerText = steps[currentStep].text;
+        stepCounter.innerText = `Step ${currentStep + 1} of ${steps.length}`;
+
+        if (currentStep === 0) {
+            prevBtn.classList.add('hidden');
+            nextBtn.innerText = "Start Tour 🚀";
+        } else {
+            prevBtn.classList.remove('hidden');
+            nextBtn.innerText = (currentStep === steps.length - 1) ? "Finish Tour 🎉" : "Next →";
+        }
+
+        if (steps[currentStep].element) {
+            const target = document.getElementById(steps[currentStep].element);
+            if (target) {
+                target.classList.add('spotlight-active');
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }
+
+    function nextStep() {
+        if (currentStep < steps.length - 1) {
+            currentStep++;
+            updateTourStep();
+        } else {
+            toggleGuideDialog();
+            currentStep = 0;
+            document.querySelectorAll('.spotlight-active').forEach(el => el.classList.remove('spotlight-active'));
+        }
+    }
+
+    function prevStep() {
+        if (currentStep > 0) {
+            currentStep--;
+            updateTourStep();
+        }
+    }
+
+    function toggleGuideDialog() {
+        const dialog = document.getElementById('ai-guide-dialog');
+        dialog.classList.toggle('hidden');
+    }
+</script>

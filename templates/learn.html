@@ -1,341 +1,424 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-slate-950">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Learning Center - AstroTime AI</title>
-    
-    <!-- Chart.js Library -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Learn & Simulator - AstroTime AI</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.globe.min.js"></script>
 
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        html, body {
+            margin: 0; padding: 0; width: 100%; min-height: 100vh;
+            overflow-x: hidden; background-color: #030712;
         }
-
-        body {
-            background-color: #f4f7f6;
-            color: #333;
-            line-height: 1.6;
+        #vanta-canvas {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0; pointer-events: none;
         }
-
-        /* --- NAVIGATION BAR --- */
-        .navbar {
-            background-color: #1a2a3a;
-            padding: 0.8rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
+        .ui-overlay { position: relative; z-index: 10; }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
         }
-
-        .navbar-brand {
-            color: #ffffff;
-            font-size: 1.4rem;
-            font-weight: bold;
-            text-decoration: none;
-        }
-
-        .navbar-brand span {
-            color: #007bff;
-        }
-
-        .nav-links {
-            display: flex;
-            list-style: none;
-            gap: 20px;
-        }
-
-        .nav-links a {
-            color: #d1d8e0;
-            text-decoration: none;
-            font-weight: 500;
-            padding: 6px 12px;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-        }
-
-        .nav-links a:hover,
-        .nav-links a.active {
-            color: #ffffff;
-            background-color: #007bff;
-        }
-
-        /* --- CONTENT & HEADER --- */
-        .container {
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
-
-        .header h1 {
-            color: #1a2a3a;
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            color: #666;
-            font-size: 1rem;
-        }
-
-        .chart-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 25px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .chart-card {
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            transition: transform 0.2s ease;
-        }
-
-        .chart-card:hover {
-            transform: translateY(-3px);
-        }
-
-        .chart-card h3 {
-            color: #2c3e50;
-            margin-bottom: 6px;
-            font-size: 1.15rem;
-        }
-
-        .chart-card p {
-            color: #7f8c8d;
-            font-size: 0.88rem;
-            margin-bottom: 15px;
-            height: 38px;
-        }
-
-        .canvas-wrapper {
-            position: relative;
-            width: 100%;
-            height: 280px;
-        }
-
-        @media (max-width: 600px) {
-            .navbar {
-                flex-direction: column;
-                gap: 10px;
-            }
-            .chart-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+        canvas { display: block; width: 100%; height: 100%; }
     </style>
 </head>
-<body>
+<body class="text-white font-sans antialiased min-h-screen flex flex-col justify-between">
 
-    <!-- TOP NAVIGATION MENU BAR -->
-    <nav class="navbar">
-        <a href="/" class="navbar-brand">AstroTime <span>AI</span></a>
-        <ul class="nav-links">
-            <li><a href="/">Home</a></li>
-            <li><a href="/analysis">Analysis</a></li>
-            <li><a href="/learn" class="active">Learn</a></li>
-            <li><a href="/ai-assistant">AI Assistant</a></li>
-            <li><a href="/about">About</a></li>
-        </ul>
-    </nav>
+    <div id="vanta-canvas"></div>
 
-    <div class="container">
-        <div class="header">
-            <h1>Astronomical & Geomatics Visual Learning Center</h1>
-            <p>Interactive visualizations explaining solar calculations, time drifts, and coordinate offsets for surveying operations.</p>
+    <div class="ui-overlay min-h-screen flex flex-col justify-between">
+        
+        <!-- Navbar -->
+        <header class="glass-card sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b border-slate-800">
+            <div class="flex items-center space-x-3">
+                <a href="/" class="text-2xl font-extrabold text-blue-500 tracking-wider">AstroTime<span class="text-white">AI</span></a>
+                <span class="text-xs font-mono bg-blue-500/10 border border-blue-500/30 text-blue-400 px-2 py-0.5 rounded-full">Interactive Labs v2.6</span>
+            </div>
+            <nav class="hidden md:flex space-x-6 text-sm font-medium text-slate-300">
+                <a href="/" class="hover:text-white transition">Home</a>
+                <a href="/analysis" class="hover:text-white transition">Analysis Matrix</a>
+                <a href="/learn" class="text-blue-400 font-bold transition">Learn & Simulator</a>
+                <a href="/ai-assistant" class="hover:text-white transition">AI Co-Pilot</a>
+                <a href="/about" class="hover:text-white transition">About</a>
+            </nav>
+            <div class="flex items-center space-x-3">
+                <button onclick="toggleHistoryDrawer()" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-2 rounded-lg font-semibold border border-slate-700 transition flex items-center space-x-1">
+                    <span>📜 History</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="container mx-auto px-4 py-8 flex-grow space-y-8">
+            
+            <div class="glass-card p-6 rounded-2xl border border-slate-700/60 space-y-2 text-center md:text-left">
+                <h1 class="text-2xl md:text-3xl font-extrabold text-blue-400">Celestial Mechanics Simulation Suite</h1>
+                <p class="text-slate-300 text-sm max-w-4xl">
+                    Interact with real-time graphical models to visually understand how planetary geometry, axial wobble, longitude offsets, and solar transits govern astronomical timekeeping systems.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                <!-- SIMULATOR 1: Julian Date -->
+                <div class="glass-card p-5 rounded-2xl border border-slate-700/60 flex flex-col justify-between space-y-4">
+                    <div>
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
+                            <h2 class="text-base font-bold text-emerald-400">1. Julian Date Continuance</h2>
+                            <span class="text-[10px] font-mono bg-emerald-500/10 text-emerald-300 px-2 py-0.5 rounded">Continuous Time</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-3">
+                            Observing how local time map to a decimal fraction since Jan 1, 4713 BCE.
+                        </p>
+                        <div class="h-44 bg-slate-900/90 rounded-xl border border-slate-800 p-3 flex flex-col justify-around font-mono text-xs">
+                            <div class="bg-slate-800/80 p-2 rounded border border-slate-700">
+                                <span class="text-slate-400">Calendar Epoch:</span>
+                                <div id="jd-cal-date" class="text-white font-bold text-sm">2026-09-14 12:00:00 UTC</div>
+                            </div>
+                            <div class="bg-emerald-950/40 border border-emerald-500/30 p-2 rounded">
+                                <span class="text-emerald-400">Julian Day Number (JD):</span>
+                                <div id="jd-output" class="text-emerald-300 font-bold text-base">2461298.00000</div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-400">Hour of Day (Day Fraction Builder):</label>
+                                <input type="range" id="jd-slider" min="0" max="24" step="0.1" value="12" class="w-full accent-emerald-500">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SIMULATOR 2: GMST -->
+                <div class="glass-card p-5 rounded-2xl border border-slate-700/60 flex flex-col justify-between space-y-4">
+                    <div>
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
+                            <h2 class="text-base font-bold text-purple-400">2. GMST (Vernal Equinox)</h2>
+                            <span class="text-[10px] font-mono bg-purple-500/10 text-purple-300 px-2 py-0.5 rounded">Celestial $0^\circ$ RA</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-3">
+                            Greenwich Meridian ($0^\circ$) alignment relative to the fixed Vernal Equinox direction ($\Upsilon$).
+                        </p>
+                        <div class="h-44 bg-slate-900/90 rounded-xl border border-slate-800 overflow-hidden relative">
+                            <canvas id="canvas-gmst"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SIMULATOR 3: LMST -->
+                <div class="glass-card p-5 rounded-2xl border border-slate-700/60 flex flex-col justify-between space-y-4">
+                    <div>
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
+                            <h2 class="text-base font-bold text-blue-400">3. LMST Longitude Offset</h2>
+                            <span class="text-[10px] font-mono bg-blue-500/10 text-blue-300 px-2 py-0.5 rounded">Meridian Shift</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-3">
+                            Drag the longitude slider to see how local meridians sweep past fixed celestial stars ($\text{LMST} = \text{GMST} + \lambda / 15$).
+                        </p>
+                        <div class="h-44 bg-slate-900/90 rounded-xl border border-slate-800 overflow-hidden relative">
+                            <canvas id="canvas-lmst"></canvas>
+                        </div>
+                        <div class="flex items-center space-x-2 text-xs font-mono">
+                            <span class="text-slate-400">Lng:</span>
+                            <input type="range" id="lmst-lng-slider" min="-180" max="180" value="101" class="w-full accent-blue-500">
+                            <span id="lmst-lng-val" class="text-blue-400 w-12 font-bold">101°E</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SIMULATOR 4: Equation of Time -->
+                <div class="glass-card p-5 rounded-2xl border border-slate-700/60 flex flex-col justify-between space-y-4">
+                    <div>
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
+                            <h2 class="text-base font-bold text-amber-400">4. Equation of Time (EoT)</h2>
+                            <span class="text-[10px] font-mono bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded">Orbital Drift</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-3">
+                            Compensating for Earth's elliptical orbit speed variance vs uniform clock time.
+                        </p>
+                        <div class="h-44 bg-slate-900/90 rounded-xl border border-slate-800 overflow-hidden relative">
+                            <canvas id="canvas-eot"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SIMULATOR 5: LAST (Nutation Wobble) -->
+                <div class="glass-card p-5 rounded-2xl border border-slate-700/60 flex flex-col justify-between space-y-4">
+                    <div>
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
+                            <h2 class="text-base font-bold text-cyan-400">5. LAST & Axial Nutation</h2>
+                            <span class="text-[10px] font-mono bg-cyan-500/10 text-cyan-300 px-2 py-0.5 rounded">Sub-Arcsecond Shift</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-3">
+                            Apparent sidereal time includes tiny periodic wobbles (nutation) in Earth's rotational axis.
+                        </p>
+                        <div class="h-44 bg-slate-900/90 rounded-xl border border-slate-800 overflow-hidden relative">
+                            <canvas id="canvas-last"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SIMULATOR 6: Apparent Solar Time (Sundial) -->
+                <div class="glass-card p-5 rounded-2xl border border-slate-700/60 flex flex-col justify-between space-y-4">
+                    <div>
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
+                            <h2 class="text-base font-bold text-amber-300">6. Apparent Solar Transit</h2>
+                            <span class="text-[10px] font-mono bg-amber-500/10 text-amber-200 px-2 py-0.5 rounded">Sundial Zenith</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-3">
+                            Apparent solar time hits precisely 12:00:00 when the physical Sun crosses your meridian line.
+                        </p>
+                        <div class="h-44 bg-slate-900/90 rounded-xl border border-slate-800 overflow-hidden relative">
+                            <canvas id="canvas-solar"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+
+        <!-- History Drawer -->
+        <div id="history-drawer" class="fixed top-0 right-0 w-80 h-full bg-slate-900/95 border-l border-slate-800 backdrop-blur-xl z-50 transform translate-x-full transition-transform duration-300 p-6 flex flex-col space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-white text-sm">Calculation History</h3>
+                <button onclick="toggleHistoryDrawer()" class="text-slate-400 hover:text-white font-bold">&times;</button>
+            </div>
+            <div id="history-list" class="flex-grow space-y-3 overflow-y-auto text-xs font-mono"></div>
+            <button onclick="clearHistory()" class="bg-red-900/40 border border-red-500/30 text-red-400 hover:bg-red-900/60 py-2 rounded-lg text-xs font-bold transition">Clear History</button>
         </div>
 
-        <div class="chart-grid">
-
-            <!-- Chart 1: Equation of Time -->
-            <div class="chart-card">
-                <h3>1. Equation of Time (EoT) Curve</h3>
-                <p>Variance in minutes between Apparent Solar Time (sundial) and Mean Solar Time (clock) across 365 days.</p>
-                <div class="canvas-wrapper">
-                    <canvas id="eotChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Chart 2: Solar vs Sidereal Time Drift -->
-            <div class="chart-card">
-                <h3>2. Solar vs. Sidereal Time Drift</h3>
-                <p>Demonstrates cumulative time gain of Sidereal time (~3.94 min/day) relative to standard solar time over 30 days.</p>
-                <div class="canvas-wrapper">
-                    <canvas id="driftChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Chart 3: Solar Elevation & Azimuth -->
-            <div class="chart-card">
-                <h3>3. Solar Altitude & Azimuth Angles</h3>
-                <p>Solar trajectory throughout daylight hours used for field survey astronomical observation planning.</p>
-                <div class="canvas-wrapper">
-                    <canvas id="solarPosChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Chart 4: Time Zone vs Solar Time Offset -->
-            <div class="chart-card">
-                <h3>4. Malaysian Location Longitude Offset (UTC+8)</h3>
-                <p>Local solar time deviation from standard clock time across Malaysian locations relative to 120°E meridian.</p>
-                <div class="canvas-wrapper">
-                    <canvas id="locationOffsetChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Chart 5: Gregorian to Julian Date Conversion -->
-            <div class="chart-card">
-                <h3>5. Calendar Year vs Ordinal Day Mapping</h3>
-                <p>Linear mapping of calendar months to ordinal day count used in Julian Date determinations.</p>
-                <div class="canvas-wrapper">
-                    <canvas id="julianChart"></canvas>
-                </div>
-            </div>
-
-        </div>
+        <!-- Footer -->
+        <footer class="glass-card py-4 text-center text-xs text-slate-500 border-t border-slate-800">
+            AstroTime AI Platform &copy; 2026. Geomatics Academic Project.
+        </footer>
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        let animFrame;
 
-            // --- 1. EQUATION OF TIME CHART ---
-            const eotDays = [];
-            const eotValues = [];
-            for (let d = 1; d <= 365; d += 10) {
-                eotDays.push(`Day ${d}`);
-                let b = (2 * Math.PI / 365) * (d - 81);
-                let val = 9.87 * Math.sin(2 * b) - 7.53 * Math.cos(b) - 1.5 * Math.sin(b);
-                eotValues.push(val.toFixed(2));
+        window.addEventListener('DOMContentLoaded', () => {
+            if (typeof VANTA !== 'undefined') {
+                VANTA.GLOBE({
+                    el: "#vanta-canvas",
+                    mouseControls: true, touchControls: true, gyroControls: false,
+                    minHeight: 200.00, minWidth: 200.00, scale: 1.00, scaleMobile: 1.00,
+                    color: 0x3b82f6, color2: 0x60a5fa, backgroundColor: 0x030712, size: 0.90
+                });
             }
 
-            new Chart(document.getElementById('eotChart'), {
-                type: 'line',
-                data: {
-                    labels: eotDays,
-                    datasets: [{
-                        label: 'EoT (Minutes)',
-                        data: eotValues,
-                        borderColor: '#007bff',
-                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    scales: { y: { title: { display: true, text: 'Variance (Minutes)' } } } 
-                }
-            });
-
-
-            // --- 2. SOLAR VS SIDEREAL DRIFT CHART ---
-            const days30 = Array.from({length: 30}, (_, i) => `Day ${i + 1}`);
-            const solarHours = days30.map((_, i) => (i + 1) * 24);
-            const siderealHours = days30.map((_, i) => ((i + 1) * 23.9344).toFixed(2));
-
-            new Chart(document.getElementById('driftChart'), {
-                type: 'line',
-                data: {
-                    labels: days30,
-                    datasets: [
-                        { label: 'Solar Hours Elapsed', data: solarHours, borderColor: '#28a745', tension: 0.1 },
-                        { label: 'Sidereal Hours Elapsed', data: siderealHours, borderColor: '#dc3545', tension: 0.1 }
-                    ]
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    scales: { y: { title: { display: true, text: 'Cumulative Hours' } } } 
-                }
-            });
-
-
-            // --- 3. SOLAR POSITION CHART ---
-            const hours = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00'];
-            const elevation = [0, 25, 55, 80, 55, 25, 0];
-            const azimuth = [90, 105, 135, 180, 225, 255, 270];
-
-            new Chart(document.getElementById('solarPosChart'), {
-                type: 'line',
-                data: {
-                    labels: hours,
-                    datasets: [
-                        { label: 'Altitude (°)', data: elevation, borderColor: '#ffc107', yAxisID: 'y' },
-                        { label: 'Azimuth (°)', data: azimuth, borderColor: '#17a2b8', yAxisID: 'y1' }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { type: 'linear', position: 'left', title: { display: true, text: 'Altitude (°)' } },
-                        y1: { type: 'linear', position: 'right', title: { display: true, text: 'Azimuth (°)' } }
-                    }
-                }
-            });
-
-
-            // --- 4. MALAYSIA LOCATION OFFSET CHART ---
-            new Chart(document.getElementById('locationOffsetChart'), {
-                type: 'bar',
-                data: {
-                    labels: ['Kota Kinabalu (116.07°E)', 'Kuantan (103.32°E)', 'Ipoh (101.09°E)', 'George Town (100.33°E)'],
-                    datasets: [{
-                        label: 'Solar Time Offset vs UTC+8 Standard (Minutes)',
-                        data: [-15.7, -66.7, -75.6, -78.6],
-                        backgroundColor: ['#6f42c1', '#20c997', '#fd7e14', '#e83e8c']
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { x: { title: { display: true, text: 'Minutes Offset from Standard Clock' } } }
-                }
-            });
-
-
-            // --- 5. JULIAN DAY MAPPING CHART ---
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const julianDays = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335];
-
-            new Chart(document.getElementById('julianChart'), {
-                type: 'line',
-                data: {
-                    labels: months,
-                    datasets: [{
-                        label: 'Ordinal Day Count',
-                        data: julianDays,
-                        borderColor: '#6c757d',
-                        backgroundColor: 'rgba(108, 117, 125, 0.2)',
-                        fill: true
-                    }]
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    scales: { y: { title: { display: true, text: 'Day Count' } } } 
-                }
-            });
-
+            setupJDInteractive();
+            renderHistory();
+            startSimLoop();
         });
+
+        // 1. Julian Date Engine
+        function setupJDInteractive() {
+            const slider = document.getElementById('jd-slider');
+            const output = document.getElementById('jd-output');
+            const calDate = document.getElementById('jd-cal-date');
+
+            slider.addEventListener('input', (e) => {
+                const hrs = parseFloat(e.target.value);
+                const dayFraction = (hrs / 24.0);
+                const baseJD = 2461297.5; // Baseline noon epoch
+                const currentJD = baseJD + dayFraction;
+                
+                output.innerText = currentJD.toFixed(5);
+                const formatHrs = Math.floor(hrs).toString().padStart(2, '0');
+                const formatMins = Math.floor((hrs % 1) * 60).toString().padStart(2, '0');
+                calDate.innerText = `2026-09-14 ${formatHrs}:${formatMins}:00 UTC`;
+            });
+        }
+
+        // Shared Animation Engine for Canvas Simulators
+        let simAngle = 0;
+        function startSimLoop() {
+            simAngle += 0.015;
+
+            drawGMSTCanvas();
+            drawLMSTCanvas();
+            drawEoTCanvas();
+            drawLASTCanvas();
+            drawSolarCanvas();
+
+            requestAnimationFrame(startSimLoop);
+        }
+
+        // 2. GMST Canvas Simulation
+        function drawGMSTCanvas() {
+            const cvs = document.getElementById('canvas-gmst');
+            if(!cvs) return;
+            cvs.width = cvs.clientWidth; cvs.height = cvs.clientHeight;
+            const ctx = cvs.getContext('2d');
+            const cX = cvs.width / 2, cY = cvs.height / 2;
+
+            // Vernal Equinox Vector
+            ctx.beginPath();
+            ctx.moveTo(cX, cY);
+            ctx.lineTo(cX + 65, cY);
+            ctx.strokeStyle = '#c084fc'; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+            ctx.fillStyle = '#c084fc'; ctx.fillText(' Vernal Equinox (♈)', cX + 10, cY - 8);
+
+            // Earth Body
+            ctx.beginPath(); ctx.arc(cX, cY, 30, 0, Math.PI * 2);
+            ctx.fillStyle = '#1e293b'; ctx.fill(); ctx.strokeStyle = '#a855f7'; ctx.stroke();
+
+            // Greenwich Meridian Pointer
+            const gmstRad = simAngle;
+            const greenX = cX + Math.cos(gmstRad) * 30;
+            const greenY = cY + Math.sin(gmstRad) * 30;
+            ctx.beginPath(); ctx.moveTo(cX, cY); ctx.lineTo(greenX, greenY);
+            ctx.strokeStyle = '#e9d5ff'; ctx.lineWidth = 3; ctx.stroke();
+        }
+
+        // 3. LMST Canvas Simulation
+        function drawLMSTCanvas() {
+            const cvs = document.getElementById('canvas-lmst');
+            if(!cvs) return;
+            cvs.width = cvs.clientWidth; cvs.height = cvs.clientHeight;
+            const ctx = cvs.getContext('2d');
+            const cX = cvs.width / 2, cY = cvs.height / 2;
+
+            const lngVal = parseFloat(document.getElementById('lmst-lng-slider').value);
+            document.getElementById('lmst-lng-val').innerText = `${lngVal}°${lngVal>=0?'E':'W'}`;
+
+            // Earth Outer
+            ctx.beginPath(); ctx.arc(cX, cY, 32, 0, Math.PI * 2);
+            ctx.fillStyle = '#0f172a'; ctx.fill(); ctx.strokeStyle = '#3b82f6'; ctx.stroke();
+
+            // Greenwich Meridian (Ref)
+            const gX = cX + Math.cos(simAngle) * 32;
+            const gY = cY + Math.sin(simAngle) * 32;
+            ctx.beginPath(); ctx.moveTo(cX, cY); ctx.lineTo(gX, gY);
+            ctx.strokeStyle = '#64748b'; ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]);
+
+            // Observer Local Meridian
+            const localRad = simAngle + (lngVal * (Math.PI / 180));
+            const lX = cX + Math.cos(localRad) * 32;
+            const lY = cY + Math.sin(localRad) * 32;
+            ctx.beginPath(); ctx.moveTo(cX, cY); ctx.lineTo(lX, lY);
+            ctx.strokeStyle = '#60a5fa'; ctx.lineWidth = 3; ctx.stroke();
+        }
+
+        // 4. EoT Dual Orbital Speed Simulator
+        function drawEoTCanvas() {
+            const cvs = document.getElementById('canvas-eot');
+            if(!cvs) return;
+            cvs.width = cvs.clientWidth; cvs.height = cvs.clientHeight;
+            const ctx = cvs.getContext('2d');
+            const cX = cvs.width / 2, cY = cvs.height / 2;
+
+            // Sun
+            ctx.beginPath(); ctx.arc(cX, cY, 10, 0, Math.PI * 2);
+            ctx.fillStyle = '#f59e0b'; ctx.fill();
+
+            // Mean Sun (Uniform circular motion)
+            const meanX = cX + Math.cos(simAngle) * 55;
+            const meanY = cY + Math.sin(simAngle) * 55;
+            ctx.beginPath(); ctx.arc(meanX, meanY, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#94a3b8'; ctx.fill();
+
+            // True Sun (Elliptical variable speed motion)
+            const trueAngle = simAngle + Math.sin(simAngle) * 0.4;
+            const trueX = cX + Math.cos(trueAngle) * 55;
+            const trueY = cY + Math.sin(trueAngle) * 55;
+            ctx.beginPath(); ctx.arc(trueX, trueY, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#fbbf24'; ctx.fill();
+
+            // Variance line (EoT difference)
+            ctx.beginPath(); ctx.moveTo(meanX, meanY); ctx.lineTo(trueX, trueY);
+            ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; ctx.stroke();
+        }
+
+        // 5. LAST Nutation Wobble Simulator
+        function drawLASTCanvas() {
+            const cvs = document.getElementById('canvas-last');
+            if(!cvs) return;
+            cvs.width = cvs.clientWidth; cvs.height = cvs.clientHeight;
+            const ctx = cvs.getContext('2d');
+            const cX = cvs.width / 2, cY = cvs.height / 2;
+
+            // Axis Center
+            ctx.beginPath(); ctx.arc(cX, cY, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#64748b'; ctx.fill();
+
+            // Mean Axis Path
+            ctx.beginPath(); ctx.arc(cX, cY, 30, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.stroke();
+
+            // Nutation wobble effect around mean position
+            const wobbleX = cX + Math.cos(simAngle) * 30 + Math.sin(simAngle * 10) * 5;
+            const wobbleY = cY + Math.sin(simAngle) * 30 + Math.cos(simAngle * 10) * 5;
+
+            ctx.beginPath(); ctx.arc(wobbleX, wobbleY, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#22d3ee'; ctx.fill();
+
+            ctx.beginPath(); ctx.moveTo(cX, cY); ctx.lineTo(wobbleX, wobbleY);
+            ctx.strokeStyle = '#06b6d4'; ctx.stroke();
+        }
+
+        // 6. Solar Transit Sundial Simulator
+        function drawSolarCanvas() {
+            const cvs = document.getElementById('canvas-solar');
+            if(!cvs) return;
+            cvs.width = cvs.clientWidth; cvs.height = cvs.clientHeight;
+            const ctx = cvs.getContext('2d');
+            const cX = cvs.width / 2, cY = cvs.height - 15;
+
+            // Horizon Line
+            ctx.beginPath(); ctx.moveTo(10, cY); ctx.lineTo(cvs.width - 10, cY);
+            ctx.strokeStyle = '#475569'; ctx.stroke();
+
+            // Local Zenith Line (Meridian)
+            ctx.beginPath(); ctx.moveTo(cX, cY); ctx.lineTo(cX, 15);
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.3)'; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
+
+            // Sun Arc Path
+            const sunArcAngle = Math.PI + (simAngle % Math.PI);
+            const sX = cX + Math.cos(sunArcAngle) * 60;
+            const sY = cY + Math.sin(sunArcAngle) * 60;
+
+            ctx.beginPath(); ctx.arc(sX, sY, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#fde047'; ctx.fill();
+        }
+
+        // Global History Helpers
+        function toggleHistoryDrawer() {
+            document.getElementById('history-drawer').classList.toggle('translate-x-full');
+        }
+
+        function renderHistory() {
+            const history = JSON.parse(localStorage.getItem('astro_history') || '[]');
+            const container = document.getElementById('history-list');
+            container.innerHTML = '';
+
+            if(history.length === 0) {
+                container.innerHTML = `<div class="text-slate-500 py-4 text-center">No calculations stored.</div>`;
+                return;
+            }
+
+            history.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'bg-slate-800/80 p-3 rounded-lg border border-slate-700 space-y-1 hover:border-blue-500 cursor-pointer transition';
+                el.innerHTML = `
+                    <div class="text-white font-bold">${item.lat}°N, ${item.lng}°E</div>
+                    <div class="text-emerald-400">JD: ${item.jd}</div>
+                    <div class="text-slate-400 text-[10px]">Solar: ${item.time} (${item.date})</div>
+                `;
+                el.onclick = () => { window.location.href = '/analysis'; };
+                container.appendChild(el);
+            });
+        }
+
+        function clearHistory() {
+            localStorage.removeItem('astro_history');
+            renderHistory();
+        }
     </script>
 </body>
 </html>

@@ -1,40 +1,57 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AstroTime AI - About</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
-        <div class="container">
-            <a class="navbar-brand" href="/">🌌 AstroTime AI</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNavigationGrid">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="topNavigationGrid">
-                <ul class="navbar-nav ms-auto">
-                    <li><a class="nav-link" href="/">Home</a></li>
-                    <li><a class="nav-link" href="/analysis">Analysis</a></li>
-                    <li><a class="nav-link" href="/learn">Learn</a></li>
-                    <li><a class="nav-link" href="/ai">AI Assistant</a></li>
-                    <li><a class="nav-link active" href="/about">About</a></li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
+{% block title %}About - AstroTime AI{% endblock %}
 
-    <main class="container my-5 text-center">
-        <div class="card p-5 max-width-600 mx-auto">
-            <h1 class="fw-bold text-white mb-3">Project Overview</h1>
-            <p class="text-muted leading">
-                This platform serves as a modern tool for visualizing astronomical time parameters using geospatial variables. By combining mapping mechanics with coordinate systems computation, it clarifies structural celestial surveying concepts.
+{% block content %}
+<div class="max-w-4xl mx-auto my-8 space-y-6">
+
+    <!-- Header Banner -->
+    <div class="glass-card rounded-2xl p-8 border border-slate-800 bg-slate-900/80 shadow-2xl backdrop-blur-md">
+        <h1 class="text-3xl font-extrabold text-blue-400">About AstroTime AI</h1>
+        <p class="text-sm text-slate-400 mt-2">
+            A specialized Geomatics and Astronomical Time transformation platform designed for geodetic surveying, spatial positioning, and celestial calculations.
+        </p>
+    </div>
+
+    <!-- Core Capabilities Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <div class="glass-card rounded-xl p-6 border border-slate-800 bg-slate-900/60 shadow-lg">
+            <h3 class="text-lg font-bold text-white mb-2">Julian Date Conversion</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+                Computes continuous Julian Date (JD) values directly from UTC time, handling astronomical epochs and Gregorian calendar shifts seamlessly.
             </p>
         </div>
-    </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+        <div class="glass-card rounded-xl p-6 border border-slate-800 bg-slate-900/60 shadow-lg">
+            <h3 class="text-lg font-bold text-white mb-2">Equation of Time (EoT)</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+                Calculates the precise difference between Apparent Solar Time (sundial) and Mean Solar Time (clock) based on orbital eccentricity and axial tilt.
+            </p>
+        </div>
+
+        <div class="glass-card rounded-xl p-6 border border-slate-800 bg-slate-900/60 shadow-lg">
+            <h3 class="text-lg font-bold text-white mb-2">Local Sidereal Time (LST)</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+                Transforms Greenwich Mean Sidereal Time (GMST) to local longitudes to determine the hour angle of the Vernal Equinox for field observations.
+            </p>
+        </div>
+
+        <div class="glass-card rounded-xl p-6 border border-slate-800 bg-slate-900/60 shadow-lg">
+            <h3 class="text-lg font-bold text-white mb-2">AI Computational Co-Pilot</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+                Integrated assistant offering real-time guidance on astronomical algorithms, coordinate reference frames, and dynamic process diagrams.
+            </p>
+        </div>
+
+    </div>
+
+    <!-- Technical Stack & Project Info -->
+    <div class="glass-card rounded-xl p-6 border border-slate-800 bg-slate-900/60 shadow-lg space-y-3">
+        <h3 class="text-lg font-bold text-white">Technical Architecture</h3>
+        <p class="text-xs text-slate-300 leading-relaxed">
+            Engineered with a Python Flask backend for mathematical processing, SQLite via SQLAlchemy for calculation persistence, and Tailwind CSS for responsive spatial data visualization.
+        </p>
+    </div>
+
+</div>
+{% endblock %}

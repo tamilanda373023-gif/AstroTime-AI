@@ -10,4 +10,4 @@ python-dateutil
 SQLAlchemy
 tzdata
 urllib3
-Werkzeug
+Werkzeuggit add requirements.txt
