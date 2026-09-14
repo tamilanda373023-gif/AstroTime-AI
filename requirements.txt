@@ -1,13 +1,6 @@
 Flask
-Flask-SQLAlchemy
-Flask-Login
+Flask-Cors
+python-dotenv
 groq
-psycopg2-binary
 gunicorn
-pandas
-requests
-python-dateutil
-SQLAlchemy
-tzdata
-urllib3
-Werkzeuggit add requirements.txt
+Werkzeug
