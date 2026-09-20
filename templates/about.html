@@ -1,57 +1,76 @@
 {% extends "base.html" %}
-{% block title %}About - AstroTime AI{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto my-8 space-y-6">
-
-    <!-- Header Banner -->
-    <div class="glass-card rounded-2xl p-8 border border-slate-800 bg-slate-900/80 shadow-2xl backdrop-blur-md">
-        <h1 class="text-3xl font-extrabold text-blue-400">About AstroTime AI</h1>
-        <p class="text-sm text-slate-400 mt-2">
-            A specialized Geomatics and Astronomical Time transformation platform designed for geodetic surveying, spatial positioning, and celestial calculations.
+<div class="max-w-5xl mx-auto px-4 py-12">
+    <!-- Header Hero Section -->
+    <div class="bg-gradient-to-br from-gray-900 via-gray-900 to-blue-950 border border-blue-500/30 rounded-3xl p-8 md:p-12 shadow-2xl backdrop-blur-md mb-10 relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="inline-block px-4 py-1.5 mb-4 text-xs font-semibold tracking-wider text-blue-400 uppercase bg-blue-500/10 border border-blue-500/20 rounded-full">
+            Final-Year Diploma Project • Geomatics & Surveying
+        </div>
+        <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 mb-4">
+            About AstroTime AI
+        </h1>
+        <p class="text-gray-300 text-lg leading-relaxed max-w-3xl">
+            <strong>AstroTime AI</strong> bridges rigorous celestial mechanics with modern artificial intelligence. Designed as an advanced geodetic platform, it empowers surveying professionals, students, and researchers with instantaneous, high-precision astronomical time conversions and intelligent field data analysis.
         </p>
     </div>
 
-    <!-- Core Capabilities Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        <div class="glass-card rounded-xl p-6 border border-slate-800 bg-slate-900/60 shadow-lg">
-            <h3 class="text-lg font-bold text-white mb-2">Julian Date Conversion</h3>
-            <p class="text-xs text-slate-300 leading-relaxed">
-                Computes continuous Julian Date (JD) values directly from UTC time, handling astronomical epochs and Gregorian calendar shifts seamlessly.
+    <!-- Core Architecture Grid -->
+    <div class="grid md:grid-cols-2 gap-8 mb-10">
+        <!-- Geodetic Engine Card -->
+        <div class="bg-gray-900/80 border border-gray-800 hover:border-blue-500/40 transition-all rounded-2xl p-6 shadow-xl">
+            <div class="w-12 h-12 bg-blue-600/20 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 mb-4 text-xl font-bold">
+                🪐
+            </div>
+            <h2 class="text-xl font-bold text-white mb-3">Geodetic & Time Engine</h2>
+            <p class="text-gray-400 text-sm leading-relaxed mb-4">
+                Executes standard astronomical algorithms to compute critical parameters dynamically without relying on static external databases:
             </p>
+            <ul class="space-y-2 text-sm text-gray-300">
+                <li class="flex items-center">✨ <span class="ml-2"><strong>Julian Dates (JD):</strong> Mathematically exact continuous day counting.</span></li>
+                <li class="flex items-center">🌍 <span class="ml-2"><strong>GMST & LMST:</strong> Sidereal rotations scaled precisely by longitude ($15^\circ$ per hour).</span></li>
+                <li class="flex items-center">⏱️ <span class="ml-2"><strong>Solar Time & Equation of Time:</strong> Fourier-approximated orbital corrections.</span></li>
+            </ul>
         </div>
 
-        <div class="glass-card rounded-xl p-6 border border-slate-800 bg-slate-900/60 shadow-lg">
-            <h3 class="text-lg font-bold text-white mb-2">Equation of Time (EoT)</h3>
-            <p class="text-xs text-slate-300 leading-relaxed">
-                Calculates the precise difference between Apparent Solar Time (sundial) and Mean Solar Time (clock) based on orbital eccentricity and axial tilt.
+        <!-- Nova AI Assistant Card -->
+        <div class="bg-gray-900/80 border border-gray-800 hover:border-indigo-500/40 transition-all rounded-2xl p-6 shadow-xl">
+            <div class="w-12 h-12 bg-indigo-600/20 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 mb-4 text-xl font-bold">
+                🤖
+            </div>
+            <h2 class="text-xl font-bold text-white mb-3">Nova AI & Spatial Mapping</h2>
+            <p class="text-gray-400 text-sm leading-relaxed mb-4">
+                Integrates cutting-edge artificial intelligence with interactive spatial mapping to streamline field operations:
             </p>
+            <ul class="space-y-2 text-sm text-gray-300">
+                <li class="flex items-center">🗺️ <span class="ml-2"><strong>Leaflet & OSM:</strong> Sub-arcsecond coordinate reliability for mapping.</span></li>
+                <li class="flex items-center">📄 <span class="ml-2"><strong>Universal Parser:</strong> Instantly reads PDFs, Word docs, and Excel files.</span></li>
+                <li class="flex items-center">💬 <span class="ml-2"><strong>Persistent Chats:</strong> Fully tracked conversation history stored securely.</span></li>
+            </ul>
         </div>
-
-        <div class="glass-card rounded-xl p-6 border border-slate-800 bg-slate-900/60 shadow-lg">
-            <h3 class="text-lg font-bold text-white mb-2">Local Sidereal Time (LST)</h3>
-            <p class="text-xs text-slate-300 leading-relaxed">
-                Transforms Greenwich Mean Sidereal Time (GMST) to local longitudes to determine the hour angle of the Vernal Equinox for field observations.
-            </p>
-        </div>
-
-        <div class="glass-card rounded-xl p-6 border border-slate-800 bg-slate-900/60 shadow-lg">
-            <h3 class="text-lg font-bold text-white mb-2">AI Computational Co-Pilot</h3>
-            <p class="text-xs text-slate-300 leading-relaxed">
-                Integrated assistant offering real-time guidance on astronomical algorithms, coordinate reference frames, and dynamic process diagrams.
-            </p>
-        </div>
-
     </div>
 
-    <!-- Technical Stack & Project Info -->
-    <div class="glass-card rounded-xl p-6 border border-slate-800 bg-slate-900/60 shadow-lg space-y-3">
-        <h3 class="text-lg font-bold text-white">Technical Architecture</h3>
-        <p class="text-xs text-slate-300 leading-relaxed">
-            Engineered with a Python Flask backend for mathematical processing, SQLite via SQLAlchemy for calculation persistence, and Tailwind CSS for responsive spatial data visualization.
-        </p>
+    <!-- Tech Stack Bar -->
+    <div class="bg-gray-900/50 border border-gray-800 rounded-2xl p-6 mb-10 text-center">
+        <h3 class="text-sm font-semibold tracking-wider text-gray-400 uppercase mb-4">Powered By Modern Industry Technologies</h3>
+        <div class="flex flex-wrap justify-center gap-3">
+            <span class="px-3 py-1 bg-gray-800 text-blue-300 rounded-lg text-xs font-medium border border-gray-700">Python / Flask</span>
+            <span class="px-3 py-1 bg-gray-800 text-indigo-300 rounded-lg text-xs font-medium border border-gray-700">Tailwind CSS</span>
+            <span class="px-3 py-1 bg-gray-800 text-green-300 rounded-lg text-xs font-medium border border-gray-700">Leaflet.js & OSM</span>
+            <span class="px-3 py-1 bg-gray-800 text-yellow-300 rounded-lg text-xs font-medium border border-gray-700">Groq LLM API</span>
+            <span class="px-3 py-1 bg-gray-800 text-purple-300 rounded-lg text-xs font-medium border border-gray-700">SQLite Database</span>
+            <span class="px-3 py-1 bg-gray-800 text-red-300 rounded-lg text-xs font-medium border border-gray-700">Render Cloud</span>
+        </div>
     </div>
 
+    <!-- Footer Action -->
+    <div class="border-t border-gray-800 pt-6 flex flex-col sm:flex-row justify-between items-center text-sm text-gray-400 gap-4">
+        <span>Developed for Excellence in Geomatics Engineering</span>
+        <div class="flex gap-4">
+            <a href="{{ url_for('ai_assistant') }}" class="text-indigo-400 hover:text-indigo-300 font-medium">Try Nova AI →</a>
+            <a href="{{ url_for('home') }}" class="text-blue-400 hover:text-blue-300 font-medium">← Back to Dashboard</a>
+        </div>
+    </div>
 </div>
 {% endblock %}

@@ -2,5 +2,9 @@ Flask
 Flask-Cors
 python-dotenv
 groq
+werkzeug
+pypdf
+python-docx
+pandas
+openpyxl
 gunicorn
-Werkzeug
